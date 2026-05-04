@@ -1,0 +1,14 @@
+[Unit]
+Description=Code Editor Celery Worker
+After=network.target redis.service
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/code-editor
+EnvironmentFile=/opt/code-editor/.env
+ExecStart=/opt/code-editor/.venv/bin/celery -A config.celery:app worker -l info
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

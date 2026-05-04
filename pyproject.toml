@@ -1,0 +1,43 @@
+[project]
+name = "code-editor-backend"
+version = "0.2.0"
+description = "Deployable Django backend for a local-first AI code editor"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Code Editor Contributors", email = "noreply@example.com" }]
+license = { text = "Apache-2.0" }
+dependencies = [
+  "Django>=4.2,<5.1",
+  "djangorestframework>=3.14",
+  "channels>=4.1",
+  "daphne>=4.1",
+  "requests>=2.31",
+  "celery>=5.4",
+  "redis>=5.0",
+  "gunicorn>=22.0",
+  "whitenoise>=6.7",
+  "prometheus-client>=0.21",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.1"]
+pgvector = ["pgvector>=0.3"]
+channels_redis = ["channels-redis>=4.2"]
+dev = [
+  "pytest>=8.3",
+  "pytest-django>=4.9",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.local"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+
+[build-system]
+requires = ["setuptools>=67", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["apps*", "config*", "code_editor*"]

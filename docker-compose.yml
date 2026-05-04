@@ -1,0 +1,53 @@
+services:
+  web:
+    build: .
+    command: gunicorn -c gunicorn.conf.py config.wsgi:application
+    env_file: .env
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+
+  daphne:
+    build: .
+    command: daphne -b 0.0.0.0 -p 8001 config.asgi:application
+    env_file: .env
+    volumes:
+      - .:/app
+    ports:
+      - "8001:8001"
+    depends_on:
+      - redis
+
+  worker:
+    build: .
+    command: celery -A config.celery:app worker -l info
+    env_file: .env
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: code_editor
+      POSTGRES_USER: code_editor
+      POSTGRES_PASSWORD: change-me
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    ports:
+      - "11434:11434"
+
+volumes:
+  postgres_data:

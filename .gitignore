@@ -1,0 +1,25 @@
+# Bytecode and caches
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Environments
+.venv/
+venv/
+.env
+
+# Build and static artifacts
+build/
+dist/
+*.egg-info/
+staticfiles/
+media/
+
+# IDE and OS
+.vscode/
+.DS_Store
+
+# Local runtime data
+/tmp/
+var/
+*.sqlite3
