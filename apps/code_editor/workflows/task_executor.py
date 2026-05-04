@@ -614,15 +614,15 @@ class TaskExecutor:
                         failure_reason = 'validation_failure'
                 else:
                     # Review mode – waiting for manual approval
-                    final_status = 'awaiting_review'
+                    final_status = 'completed'
 
             # Set summary fields based on final_status
-            if final_status == 'completed':
-                summary = 'Task finished successfully'
-                result_summary = f"Agent loop finished; validation={validation_status}"
-            elif final_status == 'awaiting_review':
+            if final_status == 'completed' and not auto_apply and all_candidates:
                 summary = 'Patch proposed for review'
                 result_summary = 'Patch proposed for review; approval required before applying'
+            elif final_status == 'completed':
+                summary = 'Task finished successfully'
+                result_summary = f"Agent loop finished; validation={validation_status}"
             elif final_status == 'validation_failed':
                 summary = 'Validation failed'
                 result_summary = 'Task failed during validation'
@@ -631,7 +631,7 @@ class TaskExecutor:
                 result_summary = 'Task failed'
 
             self.task.status = final_status
-            self.task.current_stage = final_status
+            self.task.current_stage = 'awaiting_review' if final_status == 'completed' and not auto_apply and all_candidates else final_status
             self.task.summary = summary
             self.task.result_summary = result_summary
             self.task.result_payload = result_payload

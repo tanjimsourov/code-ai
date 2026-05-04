@@ -18,12 +18,17 @@ class PermissionTests(TestCase):
     """Ensure endpoints require API key when configured."""
 
     def setUp(self) -> None:
+        self._orig_env = os.environ.copy()
         # Require API key for these tests
-        os.environ['code_editor.'] = '1'
+        os.environ['CODE_EDITOR_REQUIRE_API_KEY'] = '1'
         # Disable public model listing
-        os.environ['code_editor.'] = '0'
-        os.environ['code_editor.'] = '0'
-        os.environ['code_editor.'] = '0'
+        os.environ['CODE_EDITOR_PUBLIC_MODEL_LISTING'] = '0'
+        os.environ['CODE_EDITOR_PUBLIC_PROVIDER_LISTING'] = '0'
+        os.environ['CODE_EDITOR_PUBLIC_OPENAI_MODEL_LISTING'] = '0'
+
+    def tearDown(self) -> None:
+        os.environ.clear()
+        os.environ.update(self._orig_env)
 
     def test_chat_completion_requires_api_key(self):
         factory = APIRequestFactory()

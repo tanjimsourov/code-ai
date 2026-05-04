@@ -1,0 +1,13 @@
+[Unit]
+Description=Code AI celery worker
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/opt/code-ai
+EnvironmentFile=/opt/code-ai/.env
+ExecStart=/opt/code-ai/.venv/bin/celery -A config.celery:app worker -l info
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -146,7 +146,7 @@ class EmbeddingsServiceTests(unittest.TestCase):
 
     def test_partial_failure_raises_exception(self) -> None:
         """If embedding generation partially fails, the service should raise ProviderNotAvailableException."""
-        from ..exceptions import ProviderNotAvailableException
+        from code_editor.exceptions import ProviderNotAvailableException
 
         # Patch config to enable embeddings and set small batch size
         with mock.patch.object(config_module.ConfigService, 'get_embeddings_config', return_value={

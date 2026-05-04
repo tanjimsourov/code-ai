@@ -93,7 +93,7 @@ class StreamingService:
                     # Handle our StreamChunk dataclass
                     if isinstance(item, StreamChunk):
                         # Emit content if present
-                        if item.content:
+                        if item.content and not item.done:
                             yield {
                                 'type': 'chunk',
                                 'id': request_id,

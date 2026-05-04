@@ -642,6 +642,11 @@ class ConfigService:
         return ConfigService._get_env_bool('CODE_EDITOR_PUBLIC_OPENAI_MODEL_LISTING', False) or False
 
     @staticmethod
+    def provider_health_checks_enabled() -> bool:
+        """Return True when network provider health checks are explicitly enabled."""
+        return ConfigService._get_env_bool('CODE_EDITOR_CHECK_PROVIDER_HEALTH', False) or False
+
+    @staticmethod
     def public_metrics_enabled() -> bool:
         """
         Return True if metrics should be exposed publicly.

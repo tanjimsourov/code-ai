@@ -53,9 +53,9 @@ class RouterInfillChainTests(unittest.TestCase):
 
     def test_infill_provider_chain_includes_completion_order(self) -> None:
         # Enable an OpenAI‑compatible provider so that it is appended to the chain
-        os.environ['code_editor.'] = 'http://api.example.com'
-        os.environ['code_editor.'] = 'gpt-test'
-        os.environ['code_editor.'] = 'true'
+        os.environ['CODE_EDITOR_OPENAI_COMPATIBLE_BASE_URL'] = 'http://api.example.com'
+        os.environ['CODE_EDITOR_OPENAI_COMPATIBLE_MODEL'] = 'gpt-test'
+        os.environ['CODE_EDITOR_OPENAI_COMPATIBLE_ENABLED'] = 'true'
         router = RouterService()
         chain = router._get_provider_chain('infill')  # type: ignore[attr-defined]
         # The chain should start with fast, local and include openai_compatible at the end

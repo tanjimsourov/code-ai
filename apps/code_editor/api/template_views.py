@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from ..permissions import CodeEditorApiKeyPermission
+from ..permissions import LocalCodeEditorPermission
 from rest_framework.response import Response
 
 from ..exceptions import InvalidRequestException
@@ -10,7 +10,7 @@ from ..services.template_command_service import TemplateCommandService
 
 
 @api_view(["POST"])
-@permission_classes([CodeEditorApiKeyPermission])
+@permission_classes([LocalCodeEditorPermission])
 def template_command(request):
     """Generate a ready-to-place template plan from a natural-language command."""
     service = TemplateCommandService()

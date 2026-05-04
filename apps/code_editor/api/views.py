@@ -3,9 +3,6 @@ import json
 from pathlib import Path
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
-# Import permissions and throttles.  For production we avoid using
-# AllowAny except for minimal liveness/readiness endpoints in health_views.
-from rest_framework.permissions import AllowAny
 from ..permissions import (
     CodeEditorApiKeyPermission,
     PublicModelListingPermission,

@@ -23,6 +23,9 @@ dependencies = [
 postgres = ["psycopg[binary]>=3.1"]
 pgvector = ["pgvector>=0.3"]
 channels_redis = ["channels-redis>=4.2"]
+celery = []
+providers = []
+observability = []
 dev = [
   "pytest>=8.3",
   "pytest-django>=4.9",

@@ -11,6 +11,7 @@ COPY apps /app/apps
 COPY config /app/config
 COPY code_editor /app/code_editor
 COPY manage.py /app/manage.py
+COPY gunicorn.conf.py /app/gunicorn.conf.py
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir .[postgres,channels_redis]

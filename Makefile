@@ -31,6 +31,9 @@ docker-build:
 docker-up:
 	docker compose up -d
 
+docker-down:
+	docker compose down
+
 clean:
 	find . -type d -name "__pycache__" -prune -exec rm -rf {} +
 	find . -type d -name ".pytest_cache" -prune -exec rm -rf {} +

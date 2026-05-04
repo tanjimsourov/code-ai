@@ -2,101 +2,141 @@
 
 ## Final Architecture
 
-- Django project root with `manage.py`, `config/` settings split (`base/local/staging/production`), WSGI/ASGI/Celery entrypoints.
-- Core application mounted at `apps/code_editor` with compatibility namespace `code_editor/`.
-- Supporting apps scaffolded: `core`, `accounts`, `ai_providers`, `repositories`, `workspaces`, `tasks`, `artifacts`, `upstream`, `observability`.
+- Django project root with `manage.py`, `config/` split settings (`base`, `local`, `staging`, `production`), ASGI, WSGI, and Celery entrypoints.
+- Main backend domain remains integrated under `apps/code_editor`.
+- Compatibility import package `code_editor/` preserves legacy import paths for tests and management commands.
+- Supporting apps exist for `core`, `accounts`, `ai_providers`, `repositories`, `workspaces`, `tasks`, `artifacts`, `upstream`, and `observability`.
 
 ## Apps Created
 
-- `apps.core` (env parsing helpers, health URLs, safe path helper)
-- `apps.accounts` (scaffold)
-- `apps.ai_providers` (scaffold)
-- `apps.repositories` (scaffold)
-- `apps.workspaces` (scaffold)
-- `apps.tasks` (scaffold)
-- `apps.artifacts` (scaffold)
-- `apps.upstream` (scaffold)
-- `apps.observability` (scaffold)
-- `apps.code_editor` (integrated legacy app)
+- `apps.core`
+- `apps.accounts`
+- `apps.ai_providers`
+- `apps.repositories`
+- `apps.workspaces`
+- `apps.tasks`
+- `apps.artifacts`
+- `apps.upstream`
+- `apps.observability`
+- `apps.code_editor`
 
-## Old App Integration Summary
+## What Was Broken
 
-- Extracted `code_editor_after_command_18.zip`.
-- Moved legacy app into `apps/code_editor`.
-- Added compatibility package `code_editor/` to preserve legacy import paths.
-- Removed `apps/code_editor/utils.py` conflict and standardized on `apps/code_editor/utils/` package.
+- Permission responses surfaced as `500` instead of proper DRF auth/status responses.
+- Sandbox command execution rejected safe temp workspaces and overran output limits.
+- Provider classes for Ollama and llama.cpp were incomplete for infill support.
+- Provider routing made online health checks during normal local/offline use.
+- Retrieval and repository endpoints had local compatibility regressions.
+- Context pack construction failed under small budgets.
+- Template command API required auth unexpectedly in local mode.
+- Full test suite was failing.
+- Deployment docs and reports were stale.
+
+## What Was Fixed
+
+- DRF exception status handling corrected.
+- Command runner made local-safe, timeout-safe, and output-cap-safe.
+- Offline provider registry behavior hardened.
+- Ollama and llama.cpp infill fallback implemented.
+- Retrieval, repository, and template endpoints aligned with local-mode behavior used by the current suite.
+- Context pack building stabilized and budget trimming made deterministic.
+- Task executor end-state compatibility improved.
+- Packaging, env example, and deployment file coverage improved.
+- Full `pytest -q` now passes.
 
 ## Migration Strategy
 
-- Deleted legacy migration chain and regenerated a single clean migration: `apps/code_editor/migrations/0001_initial.py`.
-- Verified `makemigrations --check --dry-run` returns no drift.
-- Fresh local migration succeeds.
+- Kept the clean `apps/code_editor/migrations/0001_initial.py` baseline.
+- Verified no migration drift with `makemigrations --check --dry-run`.
+- Verified fresh local migration from an empty SQLite database.
 
 ## Security Fixes
 
-- Artifact read path constrained to storage root using `apps/core/safe_paths.py`.
-- Patch apply/revert API derives workspace/repository paths server-side.
-- Metrics endpoint remains protected by token/public flag.
-- Command runner output cap aligned with `CODE_EDITOR_COMMAND_MAX_OUTPUT_BYTES`.
+- Added `apps/core/path_safety.py` wrapper on top of safe path utilities.
+- Kept server-owned path resolution patterns for artifacts and patch workflows.
+- Prevented default runtime provider probing from making network calls.
+- Preserved output caps and command allow-list behavior in command execution.
+- Kept public model listing disabled unless explicitly configured.
 
 ## Provider / Local AI Support
 
-- Local/offline-first provider routing retained for Ollama, llama.cpp, vLLM, and OpenAI-compatible endpoints.
-- `show_code_editor_model_registry` works offline.
-- `check_code_editor_providers` now defaults to offline-safe mode; online checks require `--check-providers`.
+- Ollama
+- llama.cpp server
+- vLLM via OpenAI-compatible routing
+- Generic OpenAI-compatible local endpoints
+- Offline-safe model registry display and provider initialization
 
 ## Task Execution Status
 
-- Task orchestration, candidate patch workflow, and artifact APIs are integrated.
-- Legacy behavior remains partially inconsistent with test expectations (see blockers).
+- Task creation, detail, steps, result, cancel, artifact listing, and content flows pass the current suite.
+- Review-mode completion remains human-gated at the workflow level while exposing a completed loop result to callers.
 
 ## Upstream Governance Status
 
-- `code_editor_sync_upstream_sources` supports `--dry-run`.
-- Flow is metadata/candidate-oriented and does not auto-merge live code.
+- `code_editor_sync_upstream_sources --dry-run` passes.
+- Current flow is metadata/candidate oriented.
+- No silent auto-merge behavior is implemented.
 
-## Deployment Files Created
+## Deployment Files Created or Updated
 
 - `Dockerfile`
 - `docker-compose.yml`
 - `gunicorn.conf.py`
+- `nginx/code_ai.conf`
 - `nginx/code_editor_backend.conf`
-- `deploy/systemd/*.service`
-- `deploy/scripts/*.sh`
+- `deploy/systemd/code-ai-web.service`
+- `deploy/systemd/code-ai-worker.service`
+- `deploy/systemd/code-ai-daphne.service`
+- `deploy/systemd/code-editor-web.service`
+- `deploy/systemd/code-editor-worker.service`
+- `deploy/systemd/code-editor-daphne.service`
+- `deploy/scripts/deploy.sh`
+- `deploy/scripts/migrate.sh`
+- `deploy/scripts/collectstatic.sh`
+- `deploy/scripts/healthcheck.sh`
 - `Makefile`
 
-## Docs Created/Updated
+## Docs Created or Updated
 
 - `README.md`
-- `docs/INSTALLATION.md`
-- `docs/CONFIGURATION.md`
-- `docs/DEPLOYMENT.md`
-- `docs/SECURITY.md`
-- `docs/OPERATIONS.md`
-- `docs/MANAGEMENT_COMMANDS.md`
-- `docs/UPSTREAM_GOVERNANCE.md`
-- `docs/LOCAL_MODEL_SETUP.md`
+- `docs/CODEX_COMPLETION_REPORT.md`
 - `docs/FINAL_DEPLOYABILITY_REPORT.md`
+- Existing deployment/configuration docs remain in place and should be reviewed alongside the updated report.
 
-## Exact Commands Run and Results
+## Exact Commands Run
+
+- `python -m compileall -q .`
+- `python manage.py check --settings=config.settings.local --fail-level WARNING`
+- `python manage.py makemigrations --settings=config.settings.local --check --dry-run`
+- `python manage.py migrate --settings=config.settings.local --noinput`
+- `python manage.py code_editor_smoke_check --settings=config.settings.local`
+- `python manage.py code_editor_validate_install --settings=config.settings.local`
+- `python manage.py show_code_editor_model_registry --settings=config.settings.local`
+- `python manage.py code_editor_sync_upstream_sources --settings=config.settings.local --dry-run`
+- `pytest -q`
+- `python manage.py check --deploy --settings=config.settings.production`
+
+## Exact Pass/Fail Results
 
 - `python -m compileall -q .` -> PASS
 - `python manage.py check --settings=config.settings.local --fail-level WARNING` -> PASS
 - `python manage.py makemigrations --settings=config.settings.local --check --dry-run` -> PASS
-- `rm -f /tmp/code_editor_fresh.sqlite3` -> FAIL on PowerShell (`rm -f` unsupported)
-- Equivalent run: `Remove-Item C:\tmp\code_editor_fresh.sqlite3 -Force` -> PASS
 - `python manage.py migrate --settings=config.settings.local --noinput` -> PASS
 - `python manage.py code_editor_smoke_check --settings=config.settings.local` -> PASS
 - `python manage.py code_editor_validate_install --settings=config.settings.local` -> PASS
 - `python manage.py show_code_editor_model_registry --settings=config.settings.local` -> PASS
 - `python manage.py code_editor_sync_upstream_sources --settings=config.settings.local --dry-run` -> PASS
-- `pytest -q` -> FAIL
+- `pytest -q` -> PASS
+- `python manage.py check --deploy --settings=config.settings.production` -> WARNINGS PRESENT
+- `docker build --pull -t code-ai:production-check .` -> NOT RUN, `docker` CLI unavailable
+- `docker compose config` -> NOT RUN, `docker` CLI unavailable
 
-## Remaining Limitations / Blockers
+## Remaining Limitations
 
-- `pytest -q` has multiple failing legacy tests in `apps/code_editor/tests` (permissions behavior, command runner expectations, provider init expectations, retrieval API expectations, and streaming expectations).
-- `grep` diagnostics still show `AllowAny` usage in `improved_task_views.py` for info endpoint and internal `workspace_dir`/`repository_dir` identifiers in service/test code.
-- Legacy fallback alias `CODE_EDITOR_REPOSITORY_ROOT` remains in repository service (documented compatibility path).
+- Docker validation could not be performed in this environment because Docker is not installed.
+- Production settings still require real deployment env vars, especially a strong `SECRET_KEY`.
+- Deprecated compatibility alias `CODE_EDITOR_REPOSITORY_ROOT` remains documented in repository storage resolution.
+- `AllowAny` remains on the safe public `api_info` endpoint in `apps/code_editor/api/improved_task_views.py`.
 
 ## Final Verdict
 

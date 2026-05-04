@@ -169,7 +169,10 @@ class CodeEditorRequestLog(models.Model):
 
         allowed_fields = {field.name for field in cls._meta.fields}
         filtered = {key: value for key, value in normalized.items() if key in allowed_fields}
-        entry = cls.objects.create(**filtered)
+        try:
+            entry = cls.objects.create(**filtered)
+        except Exception:
+            return None
         # Instrumentation: structured logging, metrics and provider health
         try:
             # Structured logging: emit a JSON log with context

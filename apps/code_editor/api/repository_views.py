@@ -1,7 +1,7 @@
 import time
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from ..permissions import CodeEditorApiKeyPermission
+from ..permissions import LocalCodeEditorPermission
 # Local single-user mode keeps these endpoints open without API-key auth.
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
@@ -21,7 +21,7 @@ from .repository_serializers import (
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([CodeEditorApiKeyPermission])
+@permission_classes([LocalCodeEditorPermission])
 def projects_list(request):
     """List or create projects"""
     if request.method == 'GET':
@@ -30,9 +30,12 @@ def projects_list(request):
         paginator = DefaultPagination()
         page = paginator.paginate_queryset(projects, request)
         serializer = ProjectSerializer(page, many=True)
-        return paginator.get_paginated_response({
+        return Response({
             'object': 'list',
-            'data': serializer.data
+            'data': serializer.data,
+            'count': len(projects),
+            'next': paginator.get_next_link(),
+            'previous': paginator.get_previous_link(),
         })
     elif request.method == 'POST':
         try:
@@ -60,7 +63,7 @@ def projects_list(request):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
-@permission_classes([CodeEditorApiKeyPermission])
+@permission_classes([LocalCodeEditorPermission])
 def project_detail(request, project_id):
     """Get, update, or delete a project"""
     try:
@@ -106,7 +109,7 @@ def project_detail(request, project_id):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([CodeEditorApiKeyPermission])
+@permission_classes([LocalCodeEditorPermission])
 def repositories_list(request, project_id):
     """List or create repositories for a project"""
     try:
@@ -119,9 +122,12 @@ def repositories_list(request, project_id):
             paginator = DefaultPagination()
             page = paginator.paginate_queryset(repositories, request)
             serializer = RepositorySerializer(page, many=True)
-            return paginator.get_paginated_response({
+            return Response({
                 'object': 'list',
-                'data': serializer.data
+                'data': serializer.data,
+                'count': repositories.count(),
+                'next': paginator.get_next_link(),
+                'previous': paginator.get_previous_link(),
             })
         elif request.method == 'POST':
             serializer = CreateRepositorySerializer(data=request.data)
@@ -155,7 +161,7 @@ def repositories_list(request, project_id):
 
 
 @api_view(['GET', 'POST'])
-@permission_classes([CodeEditorApiKeyPermission])
+@permission_classes([LocalCodeEditorPermission])
 def ingestion_jobs_list(request, repository_id, project_id=None):
     """List or start ingestion jobs for a repository"""
     try:
@@ -170,9 +176,12 @@ def ingestion_jobs_list(request, repository_id, project_id=None):
             paginator = DefaultPagination()
             page = paginator.paginate_queryset(jobs, request)
             serializer = IngestionJobSerializer(page, many=True)
-            return paginator.get_paginated_response({
+            return Response({
                 'object': 'list',
-                'data': serializer.data
+                'data': serializer.data,
+                'count': jobs.count(),
+                'next': paginator.get_next_link(),
+                'previous': paginator.get_previous_link(),
             })
         elif request.method == 'POST':
             job = RepositoryService.start_ingestion_job(repository)
@@ -199,7 +208,7 @@ def ingestion_jobs_list(request, repository_id, project_id=None):
 
 
 @api_view(['GET'])
-@permission_classes([CodeEditorApiKeyPermission])
+@permission_classes([LocalCodeEditorPermission])
 def ingestion_job_detail(request, job_id, repository_id=None, project_id=None):
     """Get details of an ingestion job"""
     try:
@@ -245,7 +254,7 @@ def ingestion_job_detail(request, job_id, repository_id=None, project_id=None):
 
 
 @api_view(['GET'])
-@permission_classes([CodeEditorApiKeyPermission])
+@permission_classes([LocalCodeEditorPermission])
 def project_stats(request, project_id):
     """Get statistics for a project"""
     try:
@@ -277,7 +286,7 @@ def project_stats(request, project_id):
 
 
 @api_view(['GET'])
-@permission_classes([CodeEditorApiKeyPermission])
+@permission_classes([LocalCodeEditorPermission])
 def ingestion_stats(request, repository_id, project_id=None):
     """Get ingestion statistics for a repository"""
     try:

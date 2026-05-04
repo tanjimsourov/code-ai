@@ -1,0 +1,256 @@
+.\docs\PROVIDERS.md:49:`NotImplementedError` when attempting to generate embeddings.
+.\docs\FINAL_DEPLOYABILITY_REPORT.md:98:- `grep` diagnostics still show `AllowAny` usage in `improved_task_views.py` for info endpoint and internal `workspace_dir`/`repository_dir` identifiers in service/test code.
+.\docs\FINAL_DEPLOYABILITY_REPORT.md:99:- Legacy fallback alias `CODE_EDITOR_REPOSITORY_ROOT` remains in repository service (documented compatibility path).
+.\docs\PERFORMANCE.md:30:- `Repository.url`, `Repository.branch`, `Repository.vcs_provider`,
+.\docs\PERFORMANCE.md:31:  `Repository.commit_sha` – to support remote sync operations.
+.\config\settings\base.py:95:CODE_EDITOR_REPOSITORY_ROOT = env_str('CODE_EDITOR_REPOSITORY_ROOT', CODE_EDITOR_REPOSITORY_STORAGE_ROOT)
+.\config\settings\base.py:134:        pass
+.\apps\code_editor\admin.py:46:        'id', 'name', 'project', 'access_type', 'vcs_provider', 'branch',
+.\apps\code_editor\admin.py:47:        'sync_status', 'indexing_status', 'commit_sha', 'last_synced_at',
+.\apps\code_editor\admin.py:50:    list_filter = ('access_type', 'sync_status', 'indexing_status', 'project')
+.\apps\code_editor\admin.py:53:        'commit_sha', 'last_synced_at', 'last_indexed_at', 'file_count',
+.\apps\code_editor\admin.py:54:        'indexed_chunk_count', 'sync_status', 'indexing_status',
+.\apps\code_editor\admin.py:150:    # selected_by removed from display as it is not a field on SelectedFile
+.\apps\code_editor\models.py:211:                pass
+.\apps\code_editor\models.py:220:                pass
+.\apps\code_editor\models.py:229:                pass
+.\apps\code_editor\models.py:237:                pass
+.\apps\code_editor\models.py:263:                pass
+.\apps\code_editor\models.py:266:            pass
+.\apps\code_editor\models.py:322:    vcs_provider = models.CharField(
+.\apps\code_editor\models.py:336:    commit_sha = models.CharField(
+.\apps\code_editor\models.py:354:    sync_status = models.CharField(
+.\apps\code_editor\models.py:382:    storage_path = models.TextField(
+.\apps\code_editor\models.py:426:            models.Index(fields=['sync_status']),
+.\apps\code_editor\models.py:429:            # Index branch and vcs_provider for remote sync operations
+.\apps\code_editor\models.py:431:            models.Index(fields=['vcs_provider']),
+.\apps\code_editor\models.py:433:            models.Index(fields=['commit_sha']),
+.\apps\code_editor\models.py:435:            models.Index(fields=['project', 'sync_status', 'indexing_status']),
+.\apps\code_editor\mixins.py:31:            raise NotImplementedError("WorkspaceScopedQuerysetMixin requires a get_queryset method")
+.\apps\code_editor\mixins.py:56:            raise NotImplementedError("RepositoryScopedQuerysetMixin requires a get_queryset method")
+.\apps\code_editor\mixins.py:81:            raise NotImplementedError("APIKeyOwnedQuerysetMixin requires a get_queryset method")
+.\apps\code_editor\migrations\0001_initial.py:643:                    "vcs_provider",
+.\apps\code_editor\migrations\0001_initial.py:656:                    "commit_sha",
+.\apps\code_editor\migrations\0001_initial.py:672:                    "sync_status",
+.\apps\code_editor\migrations\0001_initial.py:700:                    "storage_path",
+.\apps\code_editor\migrations\0001_initial.py:1778:                fields=["sync_status"], name="code_editor_sync_st_4692a3_idx"
+.\apps\code_editor\migrations\0001_initial.py:1792:                fields=["vcs_provider"], name="code_editor_vcs_pro_91e761_idx"
+.\apps\code_editor\migrations\0001_initial.py:1798:                fields=["commit_sha"], name="code_editor_commit__7ecd71_idx"
+.\apps\code_editor\migrations\0001_initial.py:1804:                fields=["project", "sync_status", "indexing_status"],
+.\apps\code_editor\workflows\task_executor.py:40:    pass
+.\apps\code_editor\workflows\task_executor.py:51:        self.workspace_dir = self.task_dir / 'workspace'
+.\apps\code_editor\workflows\task_executor.py:53:        self.workspace_dir.mkdir(parents=True, exist_ok=True)
+.\apps\code_editor\workflows\task_executor.py:136:        remote repositories the ``storage_path`` field must be populated
+.\apps\code_editor\workflows\task_executor.py:155:            if repo.storage_path:
+.\apps\code_editor\workflows\task_executor.py:156:                src_path = Path(repo.storage_path)
+.\apps\code_editor\workflows\task_executor.py:158:                raise ValueError('Remote repository has no storage_path; run sync before execution')
+.\apps\code_editor\workflows\task_executor.py:162:        if self.workspace_dir.exists():
+.\apps\code_editor\workflows\task_executor.py:163:            shutil.rmtree(self.workspace_dir)
+.\apps\code_editor\workflows\task_executor.py:164:        shutil.copytree(src_path, self.workspace_dir)
+.\apps\code_editor\workflows\task_executor.py:179:            root_path=str(self.workspace_dir),
+.\apps\code_editor\workflows\task_executor.py:189:            file_path=str(self.workspace_dir),
+.\apps\code_editor\workflows\task_executor.py:204:        # For remote repositories, use the ``storage_path`` which points
+.\apps\code_editor\workflows\task_executor.py:212:            if not repository.storage_path:
+.\apps\code_editor\workflows\task_executor.py:213:                raise RuntimeError("Remote repository storage_path is not set; cannot generate diff")
+.\apps\code_editor\workflows\task_executor.py:214:            repo_path = Path(repository.storage_path)
+.\apps\code_editor\workflows\task_executor.py:237:        workspace_files = list_files(self.workspace_dir)
+.\apps\code_editor\workflows\task_executor.py:256:            dst_file = self.workspace_dir / rel_path
+.\apps\code_editor\workflows\task_executor.py:339:        success = patch_service.apply_candidate_to_workspace(candidate, self.workspace_dir)
+.\apps\code_editor\workflows\task_executor.py:351:            suite = unittest.defaultTestLoader.discover(str(self.workspace_dir))
+.\apps\code_editor\workflows\task_executor.py:529:                        validation_run = validation_service.validate_candidate(self.task, selected_candidate, self.workspace_dir)
+.\apps\code_editor\workflows\task_executor.py:571:                            repair_hook(self.task, selected_candidate, self.workspace_dir)
+.\apps\code_editor\api\health_views.py:88:        storage_path = getattr(settings, 'CODE_EDITOR_TASK_STORAGE_ROOT', None)
+.\apps\code_editor\api\health_views.py:89:        if storage_path:
+.\apps\code_editor\api\health_views.py:91:                os.path.isdir(storage_path) and os.access(storage_path, os.W_OK)
+.\apps\code_editor\api\improved_task_views.py:8:from rest_framework.permissions import AllowAny
+.\apps\code_editor\api\improved_task_views.py:168:            pass
+.\apps\code_editor\api\improved_task_views.py:368:            pass
+.\apps\code_editor\api\improved_task_views.py:535:@permission_classes([AllowAny])
+.\apps\code_editor\api\improved_serializers.py:69:                pass
+.\apps\code_editor\api\serializers.py:297:    The API no longer accepts an arbitrary ``workspace_dir`` for security reasons.
+.\apps\code_editor\api\views.py:7:# AllowAny except for minimal liveness/readiness endpoints in health_views.
+.\apps\code_editor\api\views.py:8:from rest_framework.permissions import AllowAny
+.\apps\code_editor\api\views.py:508:        # Determine repository directory based on access_type and storage_path
+.\apps\code_editor\api\views.py:519:            if repo.storage_path:
+.\apps\code_editor\api\views.py:520:                repo_path = _Path(repo.storage_path)
+.\apps\code_editor\api\views.py:523:        PatchService.revert_patch(patch_data, workspace_path, repository_dir=repo_path)
+.\apps\code_editor\api\retrieval_views.py:25:        pass
+.\apps\code_editor\utils\token_counter.py:89:            pass
+.\apps\code_editor\tasks.py:51:    pass
+.\apps\code_editor\tasks.py:105:            pass
+.\apps\code_editor\tasks.py:119:            pass
+.\apps\code_editor\tasks.py:322:            pass
+.\apps\code_editor\services\bug_repair_service.py:29:    def repair_bug(self, task: TaskRun, workspace_dir: Path) -> Optional[CandidatePatch]:
+.\apps\code_editor\services\bug_repair_service.py:34:            failing_tests = self._identify_failing_tests(task, workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:38:                failing_tests = self._reproduce_bug(task, workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:44:            failure_analysis = self._analyze_failure(task, failing_tests, workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:47:            fix_candidate = self._generate_targeted_fix(task, failure_analysis, workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:53:            validation_result = self._validate_bug_fix(task, fix_candidate, workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:59:                return self._refine_fix(task, fix_candidate, validation_result, workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:65:    def _identify_failing_tests(self, task: TaskRun, workspace_dir: Path) -> List[Dict[str, Any]]:
+.\apps\code_editor\services\bug_repair_service.py:82:                        result = self.command_runner.run(cmd, cwd=workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:99:                            cwd=workspace_dir,
+.\apps\code_editor\services\bug_repair_service.py:115:    def _reproduce_bug(self, task: TaskRun, workspace_dir: Path) -> List[Dict[str, Any]]:
+.\apps\code_editor\services\bug_repair_service.py:122:            test_case = self._generate_reproduction_test(task, workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:126:                test_file = workspace_dir / 'bug_reproduction_test.py'
+.\apps\code_editor\services\bug_repair_service.py:133:                        result = self.command_runner.run(['python', str(test_file)], cwd=workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:147:                            cwd=workspace_dir,
+.\apps\code_editor\services\bug_repair_service.py:172:    def _generate_reproduction_test(self, task: TaskRun, workspace_dir: Path) -> Optional[str]:
+.\apps\code_editor\services\bug_repair_service.py:279:    def _analyze_failure(self, task: TaskRun, failing_tests: List[Dict[str, Any]], workspace_dir: Path) -> Dict[str, Any]:
+.\apps\code_editor\services\bug_repair_service.py:292:            failure_context = self._prepare_failure_context(failing_tests, workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:343:    def _prepare_failure_context(self, failing_tests: List[Dict[str, Any]], workspace_dir: Path) -> Dict[str, Any]:
+.\apps\code_editor\services\bug_repair_service.py:352:                    full_path = workspace_dir / test_file
+.\apps\code_editor\services\bug_repair_service.py:408:    def _generate_targeted_fix(self, task: TaskRun, failure_analysis: Dict[str, Any], workspace_dir: Path) -> Optional[CandidatePatch]:
+.\apps\code_editor\services\bug_repair_service.py:420:                full_path = workspace_dir / file_path
+.\apps\code_editor\services\bug_repair_service.py:545:    def _validate_bug_fix(self, task: TaskRun, candidate: CandidatePatch, workspace_dir: Path) -> Dict[str, Any]:
+.\apps\code_editor\services\bug_repair_service.py:550:            success = self.patch_service.apply_candidate_to_workspace(candidate, workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:555:            validation_run = self.validation_service.validate_candidate(task, candidate, workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:577:    def _refine_fix(self, task: TaskRun, candidate: CandidatePatch, validation_result: Dict[str, Any], workspace_dir: Path) -> Optional[CandidatePatch]:
+.\apps\code_editor\services\bug_repair_service.py:582:            error_context = self._analyze_fix_failure(candidate, validation_result, workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:585:            refined_candidate = self._generate_refined_fix(task, candidate, error_context, workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:589:                refined_validation = self._validate_bug_fix(task, refined_candidate, workspace_dir)
+.\apps\code_editor\services\bug_repair_service.py:599:    def _analyze_fix_failure(self, candidate: CandidatePatch, validation_result: Dict[str, Any], workspace_dir: Path) -> Dict[str, Any]:
+.\apps\code_editor\services\bug_repair_service.py:635:    def _generate_refined_fix(self, task: TaskRun, original_candidate: CandidatePatch, error_context: Dict[str, Any], workspace_dir: Path) -> Optional[CandidatePatch]:
+.\apps\code_editor\providers\llamacpp.py:297:        raise NotImplementedError("Embeddings not supported by llama.cpp provider")
+.\apps\code_editor\providers\llamacpp.py:309:        raise NotImplementedError("Reranking not supported by llama.cpp provider")
+.\apps\code_editor\providers\base.py:26:        pass
+.\apps\code_editor\providers\base.py:39:        pass
+.\apps\code_editor\providers\base.py:52:        pass
+.\apps\code_editor\providers\base.py:57:        pass
+.\apps\code_editor\providers\base.py:66:        raise NotImplementedError("Embeddings not supported by this provider")
+.\apps\code_editor\providers\base.py:76:        raise NotImplementedError("Reranking not supported by this provider")
+.\apps\code_editor\providers\base.py:187:        pass
+.\apps\code_editor\providers\rerank.py:44:    # These raise NotImplementedError to indicate that chat, completion
+.\apps\code_editor\providers\rerank.py:48:        raise NotImplementedError("RerankProvider does not support chat completions")
+.\apps\code_editor\providers\rerank.py:51:        raise NotImplementedError("RerankProvider does not support text completions")
+.\apps\code_editor\providers\rerank.py:54:        raise NotImplementedError("RerankProvider does not support code editing")
+.\apps\code_editor\providers\rerank.py:74:        raise NotImplementedError("RerankProvider does not support code infill")
+.\apps\code_editor\providers\openai_compatible.py:341:            pass
+.\apps\code_editor\providers\openai_compatible.py:567:            pass
+.\apps\code_editor\providers\ollama.py:188:        NotImplementedError.  Otherwise call the ``/api/embed`` endpoint
+.\apps\code_editor\providers\ollama.py:194:            raise NotImplementedError("Embeddings not supported by this Ollama provider")
+.\apps\code_editor\providers\ollama.py:309:                pass
+.\apps\code_editor\services\code_map_service.py:157:            pass
+.\apps\code_editor\services\cache_helper.py:47:                pass
+.\apps\code_editor\services\candidate_scoring_service.py:12:        pass
+.\apps\code_editor\services\candidate_scoring_service.py:117:                pass
+.\apps\code_editor\services\config.py:68:                pass
+.\apps\code_editor\services\command_runner.py:35:    result = runner.run(["python", "-c", "print('hello')"], cwd=workspace_dir)
+.\apps\code_editor\services\file_selection_service.py:258:            pass
+.\apps\code_editor\services\file_selection_service.py:353:            pass
+.\apps\code_editor\services\file_selection_service.py:388:            pass
+.\apps\code_editor\services\file_selection_service.py:446:            pass
+.\apps\code_editor\services\file_selection_service.py:487:            pass
+.\apps\code_editor\services\ingestion_service.py:75:                pass
+.\apps\code_editor\services\ingestion_service.py:122:                pass
+.\apps\code_editor\services\ingestion_service.py:133:                pass
+.\apps\code_editor\services\ingestion_service.py:235:            pass
+.\apps\code_editor\tests\test_patch_service.py:23:        with tempfile.TemporaryDirectory() as repo_dir_str, tempfile.TemporaryDirectory() as workspace_dir_str:
+.\apps\code_editor\tests\test_patch_service.py:25:            workspace_dir = Path(workspace_dir_str)
+.\apps\code_editor\tests\test_patch_service.py:36:            PatchService.apply_patch(patch_data, workspace_dir)
+.\apps\code_editor\tests\test_patch_service.py:38:            self.assertEqual((workspace_dir / 'foo.txt').read_text(encoding='utf-8'), 'modified\n')
+.\apps\code_editor\tests\test_patch_service.py:40:            PatchService.revert_patch(patch_data, workspace_dir, repository_dir=repo_dir)
+.\apps\code_editor\tests\test_patch_service.py:41:            self.assertEqual((workspace_dir / 'foo.txt').read_text(encoding='utf-8'), 'original\n')
+.\apps\code_editor\tests\test_patch_service.py:51:        with tempfile.TemporaryDirectory() as workspace_dir_str:
+.\apps\code_editor\tests\test_patch_service.py:52:            workspace_dir = Path(workspace_dir_str)
+.\apps\code_editor\tests\test_patch_service.py:54:                PatchService.apply_patch(patch_data, workspace_dir)
+.\apps\code_editor\tests\test_patch_service.py:58:        with tempfile.TemporaryDirectory() as repo_dir_str, tempfile.TemporaryDirectory() as workspace_dir_str:
+.\apps\code_editor\tests\test_patch_service.py:60:            workspace_dir = Path(workspace_dir_str)
+.\apps\code_editor\tests\test_patch_service.py:68:            PatchService.apply_patch(patch_data, workspace_dir)
+.\apps\code_editor\tests\test_patch_service.py:69:            self.assertTrue((workspace_dir / 'newfile.txt').exists())
+.\apps\code_editor\tests\test_patch_service.py:71:            PatchService.revert_patch(patch_data, workspace_dir, repository_dir=repo_dir)
+.\apps\code_editor\tests\test_patch_service.py:72:            self.assertFalse((workspace_dir / 'newfile.txt').exists())
+.\apps\code_editor\services\model_profiles.py:123:        pass
+.\apps\code_editor\services\model_profiles.py:130:        pass
+.\apps\code_editor\services\patch_generation_service.py:143:                        pass
+.\apps\code_editor\services\patch_generation_service.py:344:    def apply_candidate_to_workspace(self, candidate: CandidatePatch, workspace_dir: Path) -> bool:
+.\apps\code_editor\services\patch_generation_service.py:348:        the patch, applies it to the provided ``workspace_dir`` via
+.\apps\code_editor\services\patch_generation_service.py:368:            PatchService.apply_patch(patch_data, workspace_dir)
+.\apps\code_editor\services\patch_generation_service.py:380:                pass
+.\apps\code_editor\management\commands\cleanup_code_editor_workspaces.py:70:        for workspace_dir in targets:
+.\apps\code_editor\management\commands\cleanup_code_editor_workspaces.py:73:                mtime = datetime.datetime.fromtimestamp(workspace_dir.stat().st_mtime)
+.\apps\code_editor\management\commands\cleanup_code_editor_workspaces.py:84:                self.stdout.write(f"[DRY RUN] Would delete {workspace_dir} (age={age_days}d)")
+.\apps\code_editor\management\commands\cleanup_code_editor_workspaces.py:87:                    shutil.rmtree(workspace_dir)
+.\apps\code_editor\management\commands\cleanup_code_editor_workspaces.py:89:                    self.stdout.write(f"Deleted {workspace_dir} (age={age_days}d)")
+.\apps\code_editor\management\commands\cleanup_code_editor_workspaces.py:91:                    self.stderr.write(f"Failed to delete {workspace_dir}: {exc}")
+.\apps\code_editor\services\patch_service.py:64:    def apply_patch(cls, patch: Dict[str, Any], workspace_dir: Path, *, repository_dir: Optional[Path] = None) -> None:
+.\apps\code_editor\services\patch_service.py:66:        workspace_dir.mkdir(parents=True, exist_ok=True)
+.\apps\code_editor\services\patch_service.py:68:            target = cls._resolve_inside(workspace_dir, file_path)
+.\apps\code_editor\services\patch_service.py:74:    def revert_patch(cls, patch: Dict[str, Any], workspace_dir: Path, *, repository_dir: Path) -> None:
+.\apps\code_editor\services\patch_service.py:77:            target = cls._resolve_inside(workspace_dir, file_path)
+.\apps\code_editor\services\patch_service.py:78:            original = cls._resolve_inside(repository_dir, file_path)
+.\apps\code_editor\management\commands\analyze_backend_hotspots.py:58:        for status, _ in Repository._meta.get_field('sync_status').choices:
+.\apps\code_editor\management\commands\analyze_backend_hotspots.py:59:            count = Repository.objects.filter(sync_status=status).count()
+.\apps\code_editor\management\commands\analyze_backend_hotspots.py:71:                (Repository, ['url', 'branch', 'vcs_provider', 'commit_sha']),
+.\apps\code_editor\services\repository_service.py:68:            or os.getenv('CODE_EDITOR_REPOSITORY_ROOT')
+.\apps\code_editor\services\repository_service.py:69:            or getattr(settings, 'CODE_EDITOR_REPOSITORY_ROOT', None)
+.\apps\code_editor\services\repository_service.py:78:    def _derive_storage_path(repository: Repository) -> str:
+.\apps\code_editor\services\repository_service.py:136:                repository.sync_status = 'synced'
+.\apps\code_editor\services\repository_service.py:138:                repository.commit_sha = ''
+.\apps\code_editor\services\repository_service.py:140:                repository.save(update_fields=['sync_status', 'last_synced_at', 'commit_sha', 'sync_error'])
+.\apps\code_editor\services\repository_service.py:143:        if repository.vcs_provider not in ('git', 'unknown'):
+.\apps\code_editor\services\repository_service.py:145:                repository.sync_status = 'failed'
+.\apps\code_editor\services\repository_service.py:146:                repository.sync_error = f"Unsupported VCS provider: {repository.vcs_provider}"
+.\apps\code_editor\services\repository_service.py:147:                repository.save(update_fields=['sync_status', 'sync_error'])
+.\apps\code_editor\services\repository_service.py:150:        storage_path = repository.storage_path or RepositoryService._derive_storage_path(repository)
+.\apps\code_editor\services\repository_service.py:152:        abs_storage = os.path.abspath(storage_path)
+.\apps\code_editor\services\repository_service.py:155:                repository.sync_status = 'failed'
+.\apps\code_editor\services\repository_service.py:157:                repository.save(update_fields=['sync_status', 'sync_error'])
+.\apps\code_editor\services\repository_service.py:172:                    repository.sync_status = 'pending'
+.\apps\code_editor\services\repository_service.py:174:                    repository.save(update_fields=['sync_status', 'sync_error'])
+.\apps\code_editor\services\repository_service.py:177:                repository.sync_status = 'syncing'
+.\apps\code_editor\services\repository_service.py:179:                repository.save(update_fields=['sync_status', 'sync_error'])
+.\apps\code_editor\services\repository_service.py:192:                    repository.sync_status = 'synced'
+.\apps\code_editor\services\repository_service.py:194:                    repository.save(update_fields=['sync_status', 'sync_error'])
+.\apps\code_editor\services\repository_service.py:196:                repository.sync_status = 'syncing'
+.\apps\code_editor\services\repository_service.py:198:                repository.save(update_fields=['sync_status', 'sync_error'])
+.\apps\code_editor\services\repository_service.py:240:            commit_sha = result.stdout.strip()
+.\apps\code_editor\services\repository_service.py:242:                repository.commit_sha = commit_sha
+.\apps\code_editor\services\repository_service.py:244:                repository.storage_path = abs_storage
+.\apps\code_editor\services\repository_service.py:245:                repository.sync_status = 'synced'
+.\apps\code_editor\services\repository_service.py:247:                repository.save(update_fields=['commit_sha', 'last_synced_at', 'storage_path', 'sync_status', 'sync_error'])
+.\apps\code_editor\services\repository_service.py:251:                repository.sync_status = 'failed'
+.\apps\code_editor\services\repository_service.py:253:                repository.save(update_fields=['sync_status', 'sync_error'])
+.\apps\code_editor\services\repository_service.py:257:                repository.sync_status = 'failed'
+.\apps\code_editor\services\repository_service.py:259:                repository.save(update_fields=['sync_status', 'sync_error'])
+.\apps\code_editor\services\repository_service.py:290:            pass
+.\apps\code_editor\services\repository_service.py:315:            base_path = repository.storage_path or RepositoryService._derive_storage_path(repository)
+.\apps\code_editor\services\repository_service.py:341:                pass
+.\apps\code_editor\management\commands\code_editor_prune_artifacts.py:60:                    pass
+.\apps\code_editor\services\symbol_analysis_service.py:15:        pass
+.\apps\code_editor\services\router.py:69:            pass
+.\apps\code_editor\services\router.py:116:            pass
+.\apps\code_editor\services\router.py:266:                        pass
+.\apps\code_editor\services\retrieval_service.py:100:                        pass
+.\apps\code_editor\services\validation_service.py:23:    def validate_candidate(self, task: TaskRun, candidate: CandidatePatch, workspace_dir: Path) -> ValidationRun:
+.\apps\code_editor\services\validation_service.py:38:            syntax_result = self._validate_syntax(workspace_dir, validation_run)
+.\apps\code_editor\services\validation_service.py:42:                basic_test_result = self._run_basic_tests(workspace_dir, validation_run)
+.\apps\code_editor\services\validation_service.py:48:                targeted_result = self._run_targeted_tests(task, workspace_dir, validation_run)
+.\apps\code_editor\services\validation_service.py:54:                regression_result = self._run_regression_tests(workspace_dir, validation_run)
+.\apps\code_editor\services\validation_service.py:88:    def _validate_syntax(self, workspace_dir: Path, validation_run: ValidationRun) -> Dict[str, Any]:
+.\apps\code_editor\services\validation_service.py:98:                full_path = workspace_dir / file_path
+.\apps\code_editor\services\validation_service.py:254:    def _run_basic_tests(self, workspace_dir: Path, validation_run: ValidationRun) -> Dict[str, Any]:
+.\apps\code_editor\services\validation_service.py:278:                if self._command_available(cmd[0], workspace_dir):
+.\apps\code_editor\services\validation_service.py:279:                    result = self._execute_test_command(cmd, workspace_dir)
+.\apps\code_editor\services\validation_service.py:311:    def _run_targeted_tests(self, task: TaskRun, workspace_dir: Path, validation_run: ValidationRun) -> Dict[str, Any]:
+.\apps\code_editor\services\validation_service.py:326:            test_files = self._find_relevant_test_files(workspace_dir, task)
+.\apps\code_editor\services\validation_service.py:337:            if self._command_available('python', workspace_dir):
+.\apps\code_editor\services\validation_service.py:339:                result = self._execute_test_command(cmd, workspace_dir)
+.\apps\code_editor\services\validation_service.py:365:    def _run_regression_tests(self, workspace_dir: Path, validation_run: ValidationRun) -> Dict[str, Any]:
+.\apps\code_editor\services\validation_service.py:388:                if self._command_available(cmd[0], workspace_dir):
+.\apps\code_editor\services\validation_service.py:389:                    result = self._execute_test_command(cmd, workspace_dir)
+.\apps\code_editor\services\validation_service.py:421:    def _command_available(self, command: str, workspace_dir: Optional[Path] = None) -> bool:
+.\apps\code_editor\services\validation_service.py:434:        workspace_dir: Optional[Path]
+.\apps\code_editor\services\validation_service.py:438:        if workspace_dir is None:
+.\apps\code_editor\services\validation_service.py:439:            workspace_dir = Path.cwd()
+.\apps\code_editor\services\validation_service.py:442:            result = self.command_runner.run([command, '--version'], cwd=workspace_dir)
+.\apps\code_editor\services\validation_service.py:453:    def _execute_test_command(self, cmd: List[str], workspace_dir: Path) -> Dict[str, Any]:
+.\apps\code_editor\services\validation_service.py:459:            res = self.command_runner.run(cmd, cwd=workspace_dir)
+.\apps\code_editor\services\validation_service.py:473:                cwd=workspace_dir,
+.\apps\code_editor\services\validation_service.py:499:    def _find_relevant_test_files(self, workspace_dir: Path, task: TaskRun) -> List[str]:
+.\apps\code_editor\services\validation_service.py:535:                test_path = workspace_dir / pattern
+.\apps\code_editor\management\commands\code_editor_smoke_check.py:69:            pass
+.\apps\code_editor\management\commands\sync_code_editor_repository.py:38:        prev_commit = repository.commit_sha
+.\apps\code_editor\management\commands\sync_code_editor_repository.py:48:            if repository.commit_sha and repository.commit_sha != prev_commit:
+.\apps\code_editor\management\commands\sync_code_editor_repository.py:50:                    f"Repository {repository.id} synced to commit {repository.commit_sha} (was {prev_commit or 'N/A'})"
+.\apps\code_editor\management\commands\sync_code_editor_repository.py:54:                    f"Repository {repository.id} is up to date at commit {repository.commit_sha or 'unknown'}"

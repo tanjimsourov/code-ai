@@ -34,8 +34,8 @@ services:
   postgres:
     image: postgres:16
     environment:
-      POSTGRES_DB: code_editor
-      POSTGRES_USER: code_editor
+      POSTGRES_DB: code_ai
+      POSTGRES_USER: code_ai
       POSTGRES_PASSWORD: change-me
     volumes:
       - postgres_data:/var/lib/postgresql/data

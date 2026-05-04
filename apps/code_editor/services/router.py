@@ -177,6 +177,8 @@ class RouterService:
     
     def _is_provider_healthy(self, provider_name: str) -> bool:
         """Check if provider is healthy with caching"""
+        if not ConfigService.provider_health_checks_enabled():
+            return provider_name in self._providers
         cache_key = f"provider_health:{provider_name}"
         
         # Check cache first
@@ -199,11 +201,7 @@ class RouterService:
     
     def get_available_providers(self) -> List[str]:
         """Get list of available provider names"""
-        available = []
-        for name, provider in self._providers.items():
-            if self._is_provider_healthy(name):
-                available.append(name)
-        return available
+        return [name for name in self._providers if self._is_provider_healthy(name)]
     
     def get_provider_by_name(self, name: str) -> Optional[BaseProvider]:
         """Get specific provider by name"""

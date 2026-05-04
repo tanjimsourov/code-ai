@@ -88,8 +88,11 @@ class CommandRunner:
         self.timeout_seconds: int = timeout_seconds if timeout_seconds and timeout_seconds > 0 else 300
 
         if max_output_chars is None:
+            max_output_raw = env.get("CODE_EDITOR_COMMAND_MAX_OUTPUT_BYTES")
+            if max_output_raw is None:
+                max_output_raw = env.get("CODE_EDITOR_MAX_COMMAND_OUTPUT_CHARS", "1048576")
             try:
-                max_output_chars = int(env.get("CODE_EDITOR_COMMAND_MAX_OUTPUT_BYTES", "1048576"))
+                max_output_chars = int(max_output_raw)
             except ValueError:
                 max_output_chars = 1048576
         self.max_output_chars: int = max_output_chars if max_output_chars and max_output_chars > 0 else 1048576
@@ -108,9 +111,8 @@ class CommandRunner:
         # modifications outside the task workspace.  Default to the task
         # storage root or ``/tmp`` if unspecified.  This value must be an
         # absolute path.  See also run() for enforcement.
-        self.workspace_root: str = os.path.abspath(
-            os.getenv("CODE_EDITOR_TASK_STORAGE_ROOT", env.get("CODE_EDITOR_TASK_STORAGE_ROOT", "/tmp"))
-        )
+        workspace_root_raw = os.getenv("CODE_EDITOR_TASK_STORAGE_ROOT", env.get("CODE_EDITOR_TASK_STORAGE_ROOT", ""))
+        self.workspace_root: Optional[str] = os.path.abspath(workspace_root_raw) if workspace_root_raw else None
 
     def _prepare_env(self) -> Dict[str, str]:
         """Construct a restricted environment for subprocesses.
@@ -161,23 +163,24 @@ class CommandRunner:
         # Enforce workspace boundary.  Prevent commands from executing outside of the
         # configured task storage root.  If the resolved working directory does not
         # start with ``self.workspace_root``, refuse execution.
-        try:
-            allowed_root = Path(self.workspace_root).resolve()
-            if not str(workspace).startswith(str(allowed_root)):
+        if self.workspace_root:
+            try:
+                allowed_root = Path(self.workspace_root).resolve()
+                workspace.relative_to(allowed_root)
+            except ValueError:
                 duration_ms = int((time.monotonic() - started) * 1000)
                 return {
                     "exit_code": -4,
                     "output": f"Working directory {workspace} escapes allowed workspace root",
                     "duration_ms": duration_ms,
                 }
-        except Exception:
-            # If we cannot resolve the root, fall back to refusing execution
-            duration_ms = int((time.monotonic() - started) * 1000)
-            return {
-                "exit_code": -4,
-                "output": "Failed to enforce workspace boundary",
-                "duration_ms": duration_ms,
-            }
+            except Exception:
+                duration_ms = int((time.monotonic() - started) * 1000)
+                return {
+                    "exit_code": -4,
+                    "output": "Failed to enforce workspace boundary",
+                    "duration_ms": duration_ms,
+                }
 
         # Reject commands containing path traversal or absolute paths in their arguments.
         # This naive check prevents obviously unsafe patterns such as '..' or '/etc/passwd'.
@@ -222,8 +225,11 @@ class CommandRunner:
             combined_output = (result.stdout or "") + (result.stderr or "")
             encoded = combined_output.encode("utf-8", errors="ignore")
             if len(encoded) > self.max_output_chars:
-                truncated = encoded[: self.max_output_chars].decode("utf-8", errors="ignore")
-                truncated += "\n... output truncated ..."
+                marker = "\n... output truncated ..."
+                marker_bytes = marker.encode("utf-8")
+                keep_bytes = max(0, self.max_output_chars - len(marker_bytes))
+                truncated = encoded[:keep_bytes].decode("utf-8", errors="ignore")
+                truncated += marker
                 combined_output = truncated
             return {
                 "exit_code": result.returncode,
