@@ -63,6 +63,7 @@ class CommandRunner:
         timeout_seconds: Optional[int] = None,
         max_output_chars: Optional[int] = None,
         env_allowlist: Optional[Iterable[str]] = None,
+        workspace_root: Optional[Path | str] = None,
     ) -> None:
         # Derive configuration from environment variables with sensible defaults.
         env = os.environ
@@ -88,9 +89,9 @@ class CommandRunner:
         self.timeout_seconds: int = timeout_seconds if timeout_seconds and timeout_seconds > 0 else 300
 
         if max_output_chars is None:
-            max_output_raw = env.get("CODE_EDITOR_COMMAND_MAX_OUTPUT_BYTES")
+            max_output_raw = env.get("CODE_EDITOR_MAX_COMMAND_OUTPUT_CHARS")
             if max_output_raw is None:
-                max_output_raw = env.get("CODE_EDITOR_MAX_COMMAND_OUTPUT_CHARS", "1048576")
+                max_output_raw = env.get("CODE_EDITOR_COMMAND_MAX_OUTPUT_BYTES", "1048576")
             try:
                 max_output_chars = int(max_output_raw)
             except ValueError:
@@ -111,7 +112,9 @@ class CommandRunner:
         # modifications outside the task workspace.  Default to the task
         # storage root or ``/tmp`` if unspecified.  This value must be an
         # absolute path.  See also run() for enforcement.
-        workspace_root_raw = os.getenv("CODE_EDITOR_TASK_STORAGE_ROOT", env.get("CODE_EDITOR_TASK_STORAGE_ROOT", ""))
+        if workspace_root is None:
+            workspace_root = os.getenv("CODE_EDITOR_WORKSPACE_ROOT", "")
+        workspace_root_raw = str(workspace_root or "").strip()
         self.workspace_root: Optional[str] = os.path.abspath(workspace_root_raw) if workspace_root_raw else None
 
     def _prepare_env(self) -> Dict[str, str]:

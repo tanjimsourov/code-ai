@@ -15,7 +15,7 @@ You may pass ``--dry-run`` to print the actions without executing them.
 
 import compileall
 from django.core.management.base import BaseCommand, CommandError
-from typing import List
+from django.urls import get_resolver, resolve
 
 
 class Command(BaseCommand):
@@ -116,23 +116,74 @@ class Command(BaseCommand):
 
         # Check storage paths
         try:
-            import os
             from django.conf import settings
-            storage_root = getattr(settings, 'CODE_EDITOR_TASK_STORAGE_ROOT', '/tmp/code_editor_tasks')
+            import os
+
+            required_settings = [
+                'CODE_EDITOR_TASK_STORAGE_ROOT',
+                'CODE_EDITOR_REPOSITORY_STORAGE_ROOT',
+                'CODE_EDITOR_ARTIFACT_STORAGE_ROOT',
+                'CODE_EDITOR_COMMAND_TIMEOUT_SECONDS',
+                'CODE_EDITOR_COMMAND_MAX_OUTPUT_BYTES',
+                'CODE_EDITOR_PUBLIC_MODEL_LISTING',
+                'CODE_EDITOR_PUBLIC_METRICS',
+            ]
+            missing = [name for name in required_settings if getattr(settings, name, None) in (None, '')]
+            if missing:
+                raise CommandError(f'Missing required settings: {", ".join(missing)}')
+            storage_root = settings.CODE_EDITOR_TASK_STORAGE_ROOT
             if not os.path.isdir(storage_root):
                 raise CommandError(f'Task storage root {storage_root} does not exist')
             else:
                 self.stdout.write(self.style.SUCCESS(f'Task storage root exists: {storage_root}'))
-            repository_root = getattr(settings, 'CODE_EDITOR_REPOSITORY_STORAGE_ROOT', '/tmp/code_editor_repositories')
+            repository_root = settings.CODE_EDITOR_REPOSITORY_STORAGE_ROOT
             if not os.path.isdir(repository_root):
                 raise CommandError(f'Repository storage root {repository_root} does not exist')
             self.stdout.write(self.style.SUCCESS(f'Repository storage root exists: {repository_root}'))
-            artifact_root = getattr(settings, 'CODE_EDITOR_ARTIFACT_STORAGE_ROOT', '/tmp/code_editor_artifacts')
+            artifact_root = settings.CODE_EDITOR_ARTIFACT_STORAGE_ROOT
             if not os.path.isdir(artifact_root):
                 raise CommandError(f'Artifact storage root {artifact_root} does not exist')
             self.stdout.write(self.style.SUCCESS(f'Artifact storage root exists: {artifact_root}'))
         except Exception as exc:
             raise CommandError(f'Failed to verify storage roots: {exc}') from exc
+
+        try:
+            resolver = get_resolver()
+            if resolver.url_patterns is None:
+                raise CommandError('URL resolver did not load any patterns')
+            resolve('/health/live/')
+            resolve('/api/code-editor/metrics/')
+            self.stdout.write(self.style.SUCCESS('URL configuration resolves health and metrics endpoints'))
+        except Exception as exc:
+            raise CommandError(f'URLConf validation failed: {exc}') from exc
+
+        try:
+            from django.contrib import admin
+
+            admin.site.check(None)
+            self.stdout.write(self.style.SUCCESS('Admin registrations validated'))
+        except Exception as exc:
+            raise CommandError(f'Admin validation failed: {exc}') from exc
+
+        try:
+            from django.test import RequestFactory
+            from ...api import views as api_views
+            from ...observability.metrics import metrics_view
+
+            request = RequestFactory().get('/api/code-editor/models/')
+            response = api_views.models_list(request)
+            if response.status_code not in {401, 403}:
+                raise CommandError(
+                    f'Model listing must be private by default; received {response.status_code}'
+                )
+            metrics_response = metrics_view(RequestFactory().get('/api/code-editor/metrics/'))
+            if metrics_response.status_code not in {403, 404}:
+                raise CommandError(
+                    f'Metrics endpoint must be protected by default; received {metrics_response.status_code}'
+                )
+            self.stdout.write(self.style.SUCCESS('Public surface protection validated'))
+        except Exception as exc:
+            raise CommandError(f'Protected endpoint validation failed: {exc}') from exc
 
         # Optionally check providers if requested
         if check_providers:

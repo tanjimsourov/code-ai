@@ -1,5 +1,6 @@
 """Bug repair service with failing-test-first approach."""
 
+import os
 from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 import re
@@ -21,7 +22,7 @@ class BugRepairService:
         # Use a sandboxed command runner for executing tests and custom scripts
         try:
             from .command_runner import CommandRunner  # local import to avoid circulars
-            self.command_runner = CommandRunner()
+            self.command_runner = CommandRunner(workspace_root=os.getenv('CODE_EDITOR_TASK_STORAGE_ROOT'))
         except Exception:
             # Fallback: no sandbox available; commands may be unsafe
             self.command_runner = None

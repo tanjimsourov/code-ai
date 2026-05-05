@@ -1,6 +1,8 @@
 import hashlib
 import secrets
 import uuid
+from pathlib import Path
+from urllib.parse import urlparse
 from django.conf import settings
 from django.db import models
 from django.core.validators import MinValueValidator
@@ -442,6 +444,15 @@ class Repository(models.Model):
     def __str__(self):
         return f"{self.project.name}/{self.name}"
 
+    def save(self, *args, **kwargs):
+        if self.access_type == 'local' and not self.storage_path:
+            candidate = self.url or ''
+            if candidate.startswith('file://'):
+                candidate = urlparse(candidate).path or candidate.replace('file://', '', 1)
+            if candidate:
+                self.storage_path = str(Path(candidate).expanduser().resolve())
+        super().save(*args, **kwargs)
+
 
 class IndexedFile(models.Model):
     """File that has been indexed"""
@@ -691,6 +702,10 @@ class TaskRun(models.Model):
     config = models.JSONField(default=dict, blank=True, help_text='Execution configuration and task options')
     summary = models.TextField(blank=True, help_text='Latest or final high-level summary')
     result_summary = models.TextField(blank=True, help_text='Final result summary')
+    workspace_path = models.TextField(
+        blank=True,
+        help_text='Server-owned workspace path for this task run',
+    )
     error_message = models.TextField(blank=True, help_text='Error message if the task failed')
     error_details = models.JSONField(default=dict, blank=True, help_text='Structured error details')
     launched_via = models.CharField(max_length=32, blank=True, help_text='thread, celery, or other launch mode')
@@ -781,6 +796,7 @@ class TaskRun(models.Model):
             models.Index(fields=['status']),
             models.Index(fields=['created_at']),
             models.Index(fields=['started_at']),
+            models.Index(fields=['workspace_path']),
             # Index approval_status to efficiently query pending tasks for review
             models.Index(fields=['approval_status']),
             # Index effective apply mode for policy analysis

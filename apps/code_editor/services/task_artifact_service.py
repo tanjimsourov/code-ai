@@ -9,14 +9,14 @@ from typing import Any, Optional
 from django.conf import settings
 
 from ..models import Artifact, TaskRun
-from apps.core.safe_paths import ensure_within_root
+from apps.core.path_safety import ensure_within_roots
 
 
 class TaskArtifactService:
     """Helpers for persisting and reading task artifacts on local storage."""
 
     @classmethod
-    def storage_root(cls) -> Path:
+    def task_storage_root(cls) -> Path:
         configured = os.environ.get('CODE_EDITOR_TASK_STORAGE_ROOT') or getattr(
             settings,
             'CODE_EDITOR_TASK_STORAGE_ROOT',
@@ -28,7 +28,32 @@ class TaskArtifactService:
 
     @classmethod
     def task_dir(cls, task: TaskRun) -> Path:
-        path = cls.storage_root() / str(task.id)
+        path = cls.task_storage_root() / str(task.id)
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    @classmethod
+    def workspace_dir(cls, task: TaskRun) -> Path:
+        if task.workspace_path:
+            return ensure_within_roots(Path(task.workspace_path), [cls.task_storage_root()])
+        path = cls.task_dir(task) / 'workspace'
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    @classmethod
+    def artifact_storage_root(cls) -> Path:
+        configured = os.environ.get('CODE_EDITOR_ARTIFACT_STORAGE_ROOT') or getattr(
+            settings,
+            'CODE_EDITOR_ARTIFACT_STORAGE_ROOT',
+            '/tmp/code_editor_artifacts',
+        )
+        root = Path(configured)
+        root.mkdir(parents=True, exist_ok=True)
+        return root
+
+    @classmethod
+    def artifact_dir(cls, task: TaskRun) -> Path:
+        path = cls.artifact_storage_root() / str(task.id)
         path.mkdir(parents=True, exist_ok=True)
         return path
 
@@ -49,7 +74,7 @@ class TaskArtifactService:
         metadata: Optional[dict[str, Any]] = None,
         content_type: Optional[str] = None,
     ) -> Artifact:
-        artifact_path = cls.task_dir(task) / relative_name
+        artifact_path = cls.artifact_dir(task) / relative_name
         artifact_path.parent.mkdir(parents=True, exist_ok=True)
         artifact_path.write_text(content, encoding='utf-8')
         encoded = content.encode('utf-8')
@@ -77,6 +102,9 @@ class TaskArtifactService:
         if artifact.text_content:
             return artifact.text_content
         if artifact.file_path:
-            path = ensure_within_root(cls.storage_root(), Path(artifact.file_path))
+            path = ensure_within_roots(
+                Path(artifact.file_path),
+                [cls.artifact_storage_root(), cls.task_storage_root()],
+            )
             return path.read_text(encoding='utf-8', errors='ignore')
         return ''

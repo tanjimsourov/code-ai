@@ -2,7 +2,7 @@
 
 ## VPS / Ubuntu / Dedicated Server
 
-1. Create app dir `/opt/code-editor`
+1. Create app dir `/opt/code-ai`
 2. Install Python and create virtualenv
 3. Install project dependencies
 4. Configure `.env` for production

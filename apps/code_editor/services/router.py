@@ -32,6 +32,7 @@ class RouterService:
         self._providers = {}
         # Mapping from provider type to the corresponding class
         provider_class_map = {
+            'llama_cpp': LlamaCppProvider,
             'local': LlamaCppProvider,
             'fast': LlamaCppProvider,
             'strong': LlamaCppProvider,
@@ -162,7 +163,7 @@ class RouterService:
             chain.append('local')
 
         # Append additional providers if configured
-        for extra_provider in ['openai_compatible', 'deepseek', 'vllm', 'ollama']:
+        for extra_provider in ['llama_cpp', 'openai_compatible', 'deepseek', 'vllm', 'ollama']:
             if extra_provider not in chain and ConfigService.is_provider_enabled(extra_provider):
                 chain.append(extra_provider)
 

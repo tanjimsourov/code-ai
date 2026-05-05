@@ -12,6 +12,7 @@ dependencies = [
   "channels>=4.1",
   "daphne>=4.1",
   "requests>=2.31",
+  "python-dotenv>=1.0",
   "celery>=5.4",
   "redis>=5.0",
   "gunicorn>=22.0",
