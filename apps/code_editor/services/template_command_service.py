@@ -283,7 +283,7 @@ class TemplateCommandService:
             )
             if ai_content:
                 generated = self._merge_generated_content(generated, ai_content)
-                provider_used = "code_editor_chat"
+                provider_used = "code_editor._chat"
             else:
                 warnings.append("AI returned no structured override. Used deterministic template copy.")
         except Exception as exc:

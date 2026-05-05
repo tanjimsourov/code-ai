@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import difflib
 import json
-import os
 import shutil
 import time
 from pathlib import Path
@@ -43,14 +42,15 @@ class TaskCancelled(Exception):
 class TaskExecutor:
     """Coordinator for running a ``TaskRun`` through its lifecycle."""
 
-    STORAGE_ROOT: str = os.getenv('CODE_EDITOR_TASK_STORAGE_ROOT', '/tmp/code_editor_tasks')
-
     def __init__(self, task: TaskRun) -> None:
         self.task = task
-        self.task_dir = Path(self.STORAGE_ROOT) / str(task.id)
-        self.workspace_dir = self.task_dir / 'workspace'
+        self.task_dir = TaskArtifactService.task_dir(task)
+        self.workspace_dir = TaskArtifactService.workspace_dir(task)
         self.task_dir.mkdir(parents=True, exist_ok=True)
         self.workspace_dir.mkdir(parents=True, exist_ok=True)
+        if task.workspace_path != str(self.workspace_dir):
+            self.task.workspace_path = str(self.workspace_dir)
+            self.task.save(update_fields=['workspace_path', 'updated_at'])
 
     @classmethod
     def from_id(cls, task_id: str) -> "TaskExecutor":
@@ -144,18 +144,9 @@ class TaskExecutor:
         """
         repo: Repository = self.task.repository
         # Determine the source path based on access_type
-        if repo.access_type == 'local':
-            url = repo.url or ''
-            if url.startswith('file://'):
-                src_path = Path(url.replace('file://', ''))
-            else:
-                # Fall back to interpreting the URL as a raw path
-                src_path = Path(url)
-        else:
-            if repo.storage_path:
-                src_path = Path(repo.storage_path)
-            else:
-                raise ValueError('Remote repository has no storage_path; run sync before execution')
+        if not repo.storage_path:
+            raise ValueError('Repository storage_path is not set; sync or register the repository before execution')
+        src_path = Path(repo.storage_path)
         if not src_path.exists():
             raise FileNotFoundError(f'Repository path {src_path} does not exist')
         # Remove any existing workspace and copy the repository into it
@@ -206,12 +197,9 @@ class TaskExecutor:
         # remote repository, raise an error rather than silently using
         # the repository URL.
         repository = self.task.repository
-        if repository.access_type == 'local':
-            repo_path = Path(repository.url.replace('file://', ''))
-        else:
-            if not repository.storage_path:
-                raise RuntimeError("Remote repository storage_path is not set; cannot generate diff")
-            repo_path = Path(repository.storage_path)
+        if not repository.storage_path:
+            raise RuntimeError("Repository storage_path is not set; cannot generate diff")
+        repo_path = Path(repository.storage_path)
         diff_lines: List[str] = []
 
         # Build sets of relative file paths for the repo and workspace
@@ -580,7 +568,11 @@ class TaskExecutor:
 
             # If a candidate was selected, generate a unified diff capturing all changes
             if selected_candidate:
-                diff = self._generate_diff()
+                try:
+                    diff = self._generate_diff()
+                except Exception as exc:
+                    diff = ''
+                    result_payload['diff_generation_error'] = str(exc)
                 if diff:
                     self._write_artifact(
                         None,
@@ -614,15 +606,15 @@ class TaskExecutor:
                         failure_reason = 'validation_failure'
                 else:
                     # Review mode – waiting for manual approval
-                    final_status = 'awaiting_review'
+                    final_status = 'completed'
 
             # Set summary fields based on final_status
-            if final_status == 'completed':
-                summary = 'Task finished successfully'
-                result_summary = f"Agent loop finished; validation={validation_status}"
-            elif final_status == 'awaiting_review':
+            if final_status == 'completed' and not auto_apply and all_candidates:
                 summary = 'Patch proposed for review'
                 result_summary = 'Patch proposed for review; approval required before applying'
+            elif final_status == 'completed':
+                summary = 'Task finished successfully'
+                result_summary = f"Agent loop finished; validation={validation_status}"
             elif final_status == 'validation_failed':
                 summary = 'Validation failed'
                 result_summary = 'Task failed during validation'
@@ -631,7 +623,7 @@ class TaskExecutor:
                 result_summary = 'Task failed'
 
             self.task.status = final_status
-            self.task.current_stage = final_status
+            self.task.current_stage = 'awaiting_review' if final_status == 'completed' and not auto_apply and all_candidates else final_status
             self.task.summary = summary
             self.task.result_summary = result_summary
             self.task.result_payload = result_payload

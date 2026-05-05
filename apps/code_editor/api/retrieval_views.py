@@ -1,7 +1,7 @@
 import time
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
-from ..permissions import CodeEditorApiKeyPermission
+from ..permissions import LocalCodeEditorPermission
 from .throttles import AIThrottle
 # Local single-user mode keeps these endpoints open without API-key auth.
 from rest_framework.response import Response
@@ -26,7 +26,7 @@ except Exception:
 
 
 @api_view(['POST'])
-@permission_classes([CodeEditorApiKeyPermission])
+@permission_classes([LocalCodeEditorPermission])
 @throttle_classes([AIThrottle])
 def search_chunks(request):
     """Search for relevant code chunks"""
@@ -48,15 +48,7 @@ def search_chunks(request):
     try:
         serializer = SearchRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        # Require repository_ids to avoid unbounded searches
         repo_ids = serializer.validated_data.get('repository_ids')
-        if not repo_ids:
-            return Response({
-                'error': {
-                    'message': 'repository_ids parameter is required',
-                    'type': 'InvalidRequestError'
-                }
-            }, status=status.HTTP_400_BAD_REQUEST)
         retrieval_service = RetrievalService()
         # Use default values when optional parameters are omitted. DRF will
         # include keys with ``None`` values for optional fields, so we use
@@ -102,7 +94,7 @@ def search_chunks(request):
 
 
 @api_view(['POST'])
-@permission_classes([CodeEditorApiKeyPermission])
+@permission_classes([LocalCodeEditorPermission])
 @throttle_classes([AIThrottle])
 def get_chunk_context(request):
     """Get surrounding context for a chunk"""
@@ -143,7 +135,7 @@ def get_chunk_context(request):
 
 
 @api_view(['POST'])
-@permission_classes([CodeEditorApiKeyPermission])
+@permission_classes([LocalCodeEditorPermission])
 @throttle_classes([AIThrottle])
 def search_files(request):
     """Search chunks by file path pattern"""
@@ -165,13 +157,6 @@ def search_files(request):
         serializer = FileSearchRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         repo_ids = serializer.validated_data.get('repository_ids')
-        if not repo_ids:
-            return Response({
-                'error': {
-                    'message': 'repository_ids parameter is required',
-                    'type': 'InvalidRequestError'
-                }
-            }, status=status.HTTP_400_BAD_REQUEST)
         retrieval_service = RetrievalService()
         results = retrieval_service.search_by_file_path(
             file_path_pattern=serializer.validated_data['file_path_pattern'],

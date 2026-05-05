@@ -55,9 +55,6 @@ class CodeEditorApiKeyAuthentication(BaseAuthentication):
         is provided, ``None`` is returned.  If the key is invalid or
         inactive, an ``InvalidAPIKeyException`` is raised.
         """
-        # If API keys are not required, skip authentication entirely
-        if not ConfigService.require_api_key():
-            return None
         # Retrieve the raw key from supported headers
         auth_header = request.headers.get('Authorization') or ''
         api_key_header = request.headers.get('X-API-Key') or request.headers.get('Api-Key') or ''
@@ -73,9 +70,8 @@ class CodeEditorApiKeyAuthentication(BaseAuthentication):
                 raw_key = auth_header.strip()
         elif api_key_header:
             raw_key = api_key_header.strip()
-        # If no key provided, authentication fails when required
         if not raw_key:
-            raise InvalidAPIKeyException("Missing API key")
+            return None
         # Keys must start with a known prefix to reduce lookup scope
         prefix = raw_key[:8]
         key_hash = hashlib.sha256(raw_key.encode('utf-8')).hexdigest()
@@ -91,7 +87,8 @@ class CodeEditorApiKeyAuthentication(BaseAuthentication):
                 candidate.last_used_at = timezone.now()
                 candidate.save(update_fields=['last_used_at'])
                 return (None, candidate)
-        # No matching active key found
+        if not ConfigService.require_api_key():
+            return None
         raise InvalidAPIKeyException("Invalid API key")
 
     def authenticate_header(self, request) -> str:

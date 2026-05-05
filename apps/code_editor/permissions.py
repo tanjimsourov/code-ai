@@ -13,6 +13,7 @@ layer as HTTP errors.
 """
 
 from rest_framework import permissions
+from rest_framework.exceptions import NotAuthenticated
 
 from .exceptions import InvalidAPIKeyException
 from .services.config import ConfigService
@@ -20,15 +21,14 @@ from .services.quota_service import QuotaService
 
 
 class LocalCodeEditorPermission(permissions.BasePermission):
-    """Allow all requests when API keys are not required.
-
-    This permission class simply returns ``True`` for all requests,
-    maintaining backward compatibility for local development and
-    tooling when API key enforcement is disabled.
-    """
+    """Require either a logged-in Django user or a valid API key."""
 
     def has_permission(self, request, view) -> bool:
-        return True
+        user = getattr(request, 'user', None)
+        if user and getattr(user, 'is_authenticated', False):
+            return True
+        api_key = getattr(request, 'auth', None)
+        return bool(api_key and getattr(api_key, 'is_active', False))
 
 
 class CodeEditorApiKeyPermission(permissions.BasePermission):
@@ -44,20 +44,16 @@ class CodeEditorApiKeyPermission(permissions.BasePermission):
     """
 
     def has_permission(self, request, view) -> bool:
-        # If API keys are not required, allow all requests
-        if not ConfigService.require_api_key():
+        user = getattr(request, 'user', None)
+        if user and getattr(user, 'is_authenticated', False):
             return True
         api_key = getattr(request, 'auth', None)
-        # If user is authenticated via Django's auth and API keys are not
-        # enforced for authenticated users, allow.  However, in this
-        # implementation we still require an API key when the flag is set.
         if api_key is None:
-            # No API key found on the request
-            raise InvalidAPIKeyException("API key required")
-        # Inactive or revoked keys should be treated as invalid
+            if ConfigService.require_api_key():
+                raise InvalidAPIKeyException("API key required")
+            raise NotAuthenticated("Authentication required")
         if not getattr(api_key, 'is_active', False):
             raise InvalidAPIKeyException("API key is inactive")
-        # Enforce rate and quota limits.  Exceptions propagate as 429s.
         QuotaService.enforce_limits_atomic(api_key)
         return True
 
@@ -148,6 +144,9 @@ class CanRunAIRequest(permissions.BasePermission):
     """
 
     def has_permission(self, request, view) -> bool:
+        user = getattr(request, 'user', None)
+        if user and getattr(user, 'is_authenticated', False):
+            return True
         return CodeEditorApiKeyPermission().has_permission(request, view)
 
 
@@ -162,7 +161,8 @@ class CanMutateRepository(permissions.BasePermission):
     """
 
     def has_permission(self, request, view) -> bool:
-        return CodeEditorApiKeyPermission().has_permission(request, view)
+        user = getattr(request, 'user', None)
+        return bool(user and getattr(user, 'is_authenticated', False))
 
 
 class CanApprovePatch(permissions.BasePermission):

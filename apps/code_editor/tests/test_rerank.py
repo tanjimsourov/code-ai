@@ -112,7 +112,7 @@ class RouterRerankRegistrationTests(unittest.TestCase):
         }):
             router = RouterService()
             provider = router.get_provider('rerank')
-            from ..providers.rerank import RerankProvider
+            from code_editor.providers.rerank import RerankProvider
             self.assertIsInstance(provider, RerankProvider)
 
     def test_rerank_provider_not_registered_when_disabled(self) -> None:

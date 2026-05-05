@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework import status
@@ -96,6 +97,8 @@ class IngestionServiceTestCase(TestCase):
 class RepositoryAPITestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.user = get_user_model().objects.create_user(username='repo-user', password='secret123')
+        self.client.force_login(self.user)
 
     def test_list_projects_endpoint(self):
         response = self.client.get('/api/code-editor/projects/')
@@ -153,7 +156,8 @@ class RepositoryAPITestCase(TestCase):
         self.assertEqual(response.data['object'], 'project_stats')
         self.assertIn('repository_count', response.data['data'])
 
-    def test_local_access_without_auth(self):
-        response = self.client.get('/api/code-editor/projects/')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    def test_projects_endpoint_requires_authentication(self):
+        anonymous_client = APIClient()
+        response = anonymous_client.get('/api/code-editor/projects/')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 

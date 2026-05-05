@@ -32,6 +32,7 @@ class RouterService:
         self._providers = {}
         # Mapping from provider type to the corresponding class
         provider_class_map = {
+            'llama_cpp': LlamaCppProvider,
             'local': LlamaCppProvider,
             'fast': LlamaCppProvider,
             'strong': LlamaCppProvider,
@@ -162,7 +163,7 @@ class RouterService:
             chain.append('local')
 
         # Append additional providers if configured
-        for extra_provider in ['openai_compatible', 'deepseek', 'vllm', 'ollama']:
+        for extra_provider in ['llama_cpp', 'openai_compatible', 'deepseek', 'vllm', 'ollama']:
             if extra_provider not in chain and ConfigService.is_provider_enabled(extra_provider):
                 chain.append(extra_provider)
 
@@ -177,6 +178,8 @@ class RouterService:
     
     def _is_provider_healthy(self, provider_name: str) -> bool:
         """Check if provider is healthy with caching"""
+        if not ConfigService.provider_health_checks_enabled():
+            return provider_name in self._providers
         cache_key = f"provider_health:{provider_name}"
         
         # Check cache first
@@ -199,11 +202,7 @@ class RouterService:
     
     def get_available_providers(self) -> List[str]:
         """Get list of available provider names"""
-        available = []
-        for name, provider in self._providers.items():
-            if self._is_provider_healthy(name):
-                available.append(name)
-        return available
+        return [name for name in self._providers if self._is_provider_healthy(name)]
     
     def get_provider_by_name(self, name: str) -> Optional[BaseProvider]:
         """Get specific provider by name"""

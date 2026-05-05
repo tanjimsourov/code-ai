@@ -2,15 +2,18 @@ import os
 import hashlib
 import mimetypes
 import datetime
+from pathlib import Path
 from typing import Dict, Any, List, Optional
 from django.utils import timezone
 from django.db import transaction
 from django.core.files import File
 from django.db.models import Sum
 from django.db.models.query import QuerySet
+from django.core.exceptions import ValidationError
 from ..models import Project, Repository, IndexedFile, CodeChunk, IngestionJob
 from ..exceptions import InvalidRequestException, ProviderNotAvailableException
 from ..utils import extract_code_language
+from apps.core.path_safety import ensure_within_root
 
 
 class RepositoryService:
@@ -39,13 +42,17 @@ class RepositoryService:
     @staticmethod
     def add_repository(project: Project, name: str, url: str, access_type: str = 'public', branch: str = 'main') -> Repository:
         """Add a repository to a project"""
-        return Repository.objects.create(
+        repository = Repository(
             project=project,
             name=name.strip(),
             url=url.strip(),
             access_type=access_type,
             branch=branch
         )
+        if access_type == 'local':
+            repository.storage_path = str(RepositoryService.resolve_local_repository_path(url))
+        repository.save()
+        return repository
 
     # ------------------------------------------------------------------
     # Remote repository support
@@ -73,6 +80,19 @@ class RepositoryService:
         base_dir = os.path.abspath(base_dir)
         os.makedirs(base_dir, exist_ok=True)
         return base_dir
+
+    @staticmethod
+    def resolve_local_repository_path(url_or_path: str) -> Path:
+        candidate = (url_or_path or '').strip()
+        if candidate.startswith('file://'):
+            candidate = candidate.replace('file://', '', 1)
+        path = Path(candidate).expanduser()
+        if not path.is_absolute():
+            path = path.resolve()
+        resolved = path.resolve()
+        if not resolved.exists() or not resolved.is_dir():
+            raise InvalidRequestException('Local repository path must point to an existing directory')
+        return resolved
 
     @staticmethod
     def _derive_storage_path(repository: Repository) -> str:
@@ -132,12 +152,14 @@ class RepositoryService:
         from django.utils import timezone  # deferred import
         # For local repositories, simply mark as synced
         if repository.access_type == 'local':
+            local_path = RepositoryService.resolve_local_repository_path(repository.storage_path or repository.url)
             if not dry_run:
+                repository.storage_path = str(local_path)
                 repository.sync_status = 'synced'
                 repository.last_synced_at = timezone.now()
                 repository.commit_sha = ''
                 repository.sync_error = ''
-                repository.save(update_fields=['sync_status', 'last_synced_at', 'commit_sha', 'sync_error'])
+                repository.save(update_fields=['storage_path', 'sync_status', 'last_synced_at', 'commit_sha', 'sync_error'])
             return
         # Only support git for now
         if repository.vcs_provider not in ('git', 'unknown'):
@@ -149,7 +171,7 @@ class RepositoryService:
         branch_to_use = branch or repository.branch or 'main'
         storage_path = repository.storage_path or RepositoryService._derive_storage_path(repository)
         base_dir = RepositoryService._get_base_clone_dir()
-        abs_storage = os.path.abspath(storage_path)
+        abs_storage = str(ensure_within_root(Path(base_dir), Path(storage_path)))
         if not abs_storage.startswith(os.path.abspath(base_dir)):
             if not dry_run:
                 repository.sync_status = 'failed'
@@ -314,7 +336,7 @@ class RepositoryService:
                 return []
             base_path = repository.storage_path or RepositoryService._derive_storage_path(repository)
         else:
-            base_path = repository.url.replace('file://', '')
+            base_path = repository.storage_path or str(RepositoryService.resolve_local_repository_path(repository.url))
         if not base_path:
             return []
         base_path = os.path.abspath(base_path)

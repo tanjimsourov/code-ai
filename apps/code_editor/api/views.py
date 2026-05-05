@@ -3,9 +3,6 @@ import json
 from pathlib import Path
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
-# Import permissions and throttles.  For production we avoid using
-# AllowAny except for minimal liveness/readiness endpoints in health_views.
-from rest_framework.permissions import AllowAny
 from ..permissions import (
     CodeEditorApiKeyPermission,
     PublicModelListingPermission,
@@ -466,7 +463,7 @@ def apply_patch(request):
     from ..services.task_artifact_service import TaskArtifactService
     # Determine workspace directory from the candidate task.  We no longer
     # accept arbitrary workspace paths from clients.
-    workspace_path = TaskArtifactService.task_dir(candidate.task) / 'workspace'
+    workspace_path = TaskArtifactService.workspace_dir(candidate.task)
     # Apply patch via PatchService
     try:
         from ..services.patch_service import PatchService
@@ -504,22 +501,12 @@ def revert_patch(request):
             return Response({'error': {'message': 'No patch artifact found', 'type': 'NotFound'}}, status=status.HTTP_404_NOT_FOUND)
         patch_data = json.loads(TaskArtifactService.read_content(artifact))
         # Derive workspace and repository paths from server configuration
-        workspace_path = TaskArtifactService.task_dir(candidate.task) / 'workspace'
-        # Determine repository directory based on access_type and storage_path
+        workspace_path = TaskArtifactService.workspace_dir(candidate.task)
         repo = candidate.task.repository
         from pathlib import Path as _Path
-        if repo.access_type == 'local':
-            # For local repositories, the URL should start with file://
-            url = repo.url or ''
-            if url.startswith('file://'):
-                repo_path = _Path(url.replace('file://', ''))
-            else:
-                repo_path = _Path(url)
-        else:
-            if repo.storage_path:
-                repo_path = _Path(repo.storage_path)
-            else:
-                return Response({'error': {'message': 'Repository storage path missing', 'type': 'InvalidRepository'}}, status=status.HTTP_400_BAD_REQUEST)
+        if not repo.storage_path:
+            return Response({'error': {'message': 'Repository storage path missing', 'type': 'InvalidRepository'}}, status=status.HTTP_400_BAD_REQUEST)
+        repo_path = _Path(repo.storage_path)
         PatchService.revert_patch(patch_data, workspace_path, repository_dir=repo_path)
         # update candidate status
         candidate.status = 'rolled_back'

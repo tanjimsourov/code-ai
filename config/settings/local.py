@@ -1,13 +1,18 @@
+from __future__ import annotations
+
+import os
+import tempfile
+from pathlib import Path
+
 from .base import *  # noqa
 
 DEBUG = True
-SECRET_KEY = SECRET_KEY or 'local-insecure-key-change-me'
 
 if not os.getenv('DATABASE_URL'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': '/tmp/code_editor_fresh.sqlite3',
+            'NAME': str(Path(tempfile.gettempdir()) / 'code_ai_fresh.sqlite3'),
         }
     }
 

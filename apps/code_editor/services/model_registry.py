@@ -72,13 +72,17 @@ class ModelRegistryService:
     #: List of recognised roles.  New roles may be added here without
     #: affecting existing behaviour.  Roles are case‑insensitive.
     ROLES: Tuple[str, ...] = (
+        'planning',
         'agent_plan',
         'chat',
+        'code',
         'edit',
         'apply',
         'autocomplete',
         'infill',
+        'embeddings',
         'embed',
+        'review',
         'rerank',
         'summarize',
         'validate_explain',
@@ -90,13 +94,17 @@ class ModelRegistryService:
     #: reuse the same request type (e.g. summarise uses chat).  Unknown
     #: roles default to ``chat``.
     ROLE_TO_REQUEST_TYPE: Dict[str, str] = {
+        'planning': 'chat',
         'agent_plan': 'chat',
         'chat': 'chat',
+        'code': 'edit',
         'edit': 'edit',
         'apply': 'edit',
         'autocomplete': 'complete',
         'infill': 'infill',
+        'embeddings': 'embed',
         'embed': 'embed',
+        'review': 'chat',
         'rerank': 'rerank',
         'summarize': 'chat',
         'validate_explain': 'chat',
@@ -108,13 +116,17 @@ class ModelRegistryService:
     #: always supported by the provider and model.  These keys align
     #: with the keys returned by ``BaseProvider.get_capabilities()``.
     ROLE_TO_CAPABILITY_KEY: Dict[str, Optional[str]] = {
+        'planning': 'chat',
         'agent_plan': 'chat',
         'chat': 'chat',
+        'code': 'edit',
         'edit': 'edit',
         'apply': 'edit',
         'autocomplete': 'completion',
         'infill': 'infill',
+        'embeddings': 'embeddings',
         'embed': 'embeddings',
+        'review': 'chat',
         'rerank': 'rerank',
         'summarize': 'chat',
         'validate_explain': 'chat',
@@ -253,7 +265,7 @@ class ModelRegistryService:
         temperature = None
         # Determine provider type (local vs remote) heuristically: treat
         # providers named 'local', 'fast', 'strong' and 'ollama' as local
-        local_names = {'local', 'fast', 'strong', 'ollama'}
+        local_names = {'llama_cpp', 'local', 'fast', 'strong', 'ollama', 'vllm'}
         provider_type = 'local' if provider.name in local_names else 'remote'
         # Determine if the role is enabled (provider exists and model resolved)
         enabled = provider is not None and bool(resolved_model)

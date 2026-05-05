@@ -250,6 +250,36 @@ class LlamaCppProvider(BaseProvider):
             }
         ]
 
+    def infill_code(
+        self,
+        prefix: str,
+        suffix: str,
+        model: Optional[str],
+        language: Optional[str] = None,
+        filename: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+        stream: bool = False,
+        **kwargs
+    ) -> Dict[str, Any]:
+        prompt_parts = [
+            "Fill in the missing code between the prefix and suffix.",
+            "Return only the inserted code.",
+        ]
+        if language:
+            prompt_parts.append(f"Language: {language}")
+        if filename:
+            prompt_parts.append(f"Filename: {filename}")
+        prompt_parts.extend(["Prefix:", prefix, "Suffix:", suffix])
+        return self.text_completion(
+            prompt="\n".join(prompt_parts),
+            model=model or self.default_model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=stream,
+            **kwargs
+        )
+
     # ------------------------------------------------------------------
     # Capability overrides
 

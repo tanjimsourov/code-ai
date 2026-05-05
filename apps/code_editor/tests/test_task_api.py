@@ -2,6 +2,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -13,6 +14,8 @@ from code_editor.services.task_artifact_service import TaskArtifactService
 class TaskApiTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.user = get_user_model().objects.create_user(username='task-user', password='secret123')
+        self.client.force_login(self.user)
         self.project = Project.objects.create(name='Task API Project', description='')
         self.repo_dir = tempfile.TemporaryDirectory()
         repo_root = Path(self.repo_dir.name)

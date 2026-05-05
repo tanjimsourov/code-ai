@@ -52,13 +52,13 @@ class RouterServiceInitializationTests(unittest.TestCase):
     def test_initializes_openai_provider_when_enabled(self) -> None:
         """Router should register the OpenAI‑compatible provider when configured."""
         # Set OpenAI‑compatible provider configuration via new environment variables
-        os.environ['code_editor.'] = 'http://api.example.com'
-        os.environ['code_editor.'] = 'gpt-test'
-        os.environ['code_editor.'] = 'true'
+        os.environ['CODE_EDITOR_OPENAI_COMPATIBLE_BASE_URL'] = 'http://api.example.com'
+        os.environ['CODE_EDITOR_OPENAI_COMPATIBLE_MODEL'] = 'gpt-test'
+        os.environ['CODE_EDITOR_OPENAI_COMPATIBLE_ENABLED'] = 'true'
         router = RouterService()
         # Provider should be registered under its type name
         provider = router.get_provider_by_name('openai_compatible')
-        from ..providers.openai_compatible import OpenAICompatibleProvider
+        from code_editor.providers.openai_compatible import OpenAICompatibleProvider
         self.assertIsInstance(provider, OpenAICompatibleProvider)
         # The provider chain for chat should include openai_compatible at the end
         chain = router._get_provider_chain('chat')

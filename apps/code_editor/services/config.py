@@ -14,6 +14,7 @@ class ConfigService:
 
     # Map provider type to environment prefix used for new variables
     _ENV_PREFIXES = {
+        'llama_cpp': 'CODE_EDITOR_LLAMA_CPP',
         'local': 'CODE_EDITOR_LOCAL',
         'fast': 'CODE_EDITOR_FAST',
         'strong': 'CODE_EDITOR_STRONG',
@@ -75,20 +76,32 @@ class ConfigService:
                                    os.getenv('AI_PROVIDER_MAX_RETRIES',
                                             os.getenv('AI_PROVIDER_RETRIES', '3'))))
 
-        if provider_type in {'local', 'fast', 'strong'}:
+        if provider_type in {'llama_cpp', 'local', 'fast', 'strong'}:
             # Legacy fallback variables for llama.cpp providers
             legacy_url_vars = {
+                'llama_cpp': 'AI_LOCALAI_URL',
                 'local': 'AI_LOCALAI_URL',
                 'fast': 'AI_FAST_URL',
                 'strong': 'AI_STRONG_URL',
             }
             legacy_model_vars = {
+                'llama_cpp': 'AI_LOCALAI_MODEL',
                 'local': 'AI_LOCALAI_MODEL',
                 'fast': 'AI_FAST_MODEL',
                 'strong': 'AI_STRONG_MODEL',
             }
             if not base_url:
+                if provider_type == 'llama_cpp':
+                    base_url = os.getenv('CODE_EDITOR_LLAMA_CPP_BASE_URL', '')
+                if not base_url:
+                    base_url = os.getenv('CODE_EDITOR_LOCAL_BASE_URL', '')
+            if not base_url:
                 base_url = os.getenv(legacy_url_vars.get(provider_type, ''), '')
+            if not model:
+                if provider_type == 'llama_cpp':
+                    model = os.getenv('CODE_EDITOR_LLAMA_CPP_MODEL', '')
+                if not model:
+                    model = os.getenv('CODE_EDITOR_LOCAL_MODEL', '')
             if not model:
                 model = os.getenv(legacy_model_vars.get(provider_type, ''), '')
             # Determine enabled if not explicitly set
@@ -159,6 +172,7 @@ class ConfigService:
     def _default_model_for(provider_type: str) -> str:
         """Return a reasonable default model name for a given provider type."""
         defaults = {
+            'llama_cpp': 'qwen2.5-coder-7b-instruct',
             'local': 'qwen2.5-coder-7b-instruct',
             'fast': 'qwen2.5-coder-1.5b-instruct',
             'strong': 'code-llama-34b-instruct',
@@ -185,6 +199,10 @@ class ConfigService:
     def is_localai_enabled() -> bool:
         """Check if LocalAI provider is enabled"""
         return ConfigService.is_provider_enabled('local')
+
+    @staticmethod
+    def is_llama_cpp_enabled() -> bool:
+        return ConfigService.is_provider_enabled('llama_cpp')
     
     @staticmethod
     def is_fast_enabled() -> bool:
@@ -245,6 +263,10 @@ class ConfigService:
     def get_localai_config() -> Dict[str, Any]:
         """Get LocalAI provider configuration"""
         return ConfigService.get_provider_config('local')
+
+    @staticmethod
+    def get_llama_cpp_config() -> Dict[str, Any]:
+        return ConfigService.get_provider_config('llama_cpp')
     
     @staticmethod
     def get_fast_config() -> Dict[str, Any]:
@@ -640,6 +662,11 @@ class ConfigService:
         ``CODE_EDITOR_PUBLIC_OPENAI_MODEL_LISTING`` to override.
         """
         return ConfigService._get_env_bool('CODE_EDITOR_PUBLIC_OPENAI_MODEL_LISTING', False) or False
+
+    @staticmethod
+    def provider_health_checks_enabled() -> bool:
+        """Return True when network provider health checks are explicitly enabled."""
+        return ConfigService._get_env_bool('CODE_EDITOR_CHECK_PROVIDER_HEALTH', False) or False
 
     @staticmethod
     def public_metrics_enabled() -> bool:

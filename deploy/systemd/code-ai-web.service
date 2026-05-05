@@ -1,0 +1,13 @@
+[Unit]
+Description=Code AI web service
+After=network.target
+
+[Service]
+User=www-data
+WorkingDirectory=/opt/code-ai
+EnvironmentFile=/opt/code-ai/.env
+ExecStart=/opt/code-ai/.venv/bin/gunicorn -c /opt/code-ai/gunicorn.conf.py config.wsgi:application
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

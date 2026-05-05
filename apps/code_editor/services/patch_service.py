@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 import shutil
 
+from apps.core.path_safety import ensure_within_root, resolve_relative_path
+
 
 class PatchService:
     """Validate and apply reviewable patch payloads safely."""
@@ -28,13 +30,7 @@ class PatchService:
     def _resolve_inside(cls, root: Path, file_path: str) -> Path:
         if not cls._is_safe_relative_path(file_path):
             raise ValueError(f"Unsafe file path in patch: {file_path}")
-        root_resolved = root.resolve()
-        target = (root_resolved / file_path).resolve()
-        try:
-            target.relative_to(root_resolved)
-        except ValueError:
-            raise ValueError(f"Patch path escapes workspace: {file_path}")
-        return target
+        return resolve_relative_path(root, file_path)
 
     @classmethod
     def validate_patch(cls, patch: Dict[str, Any]) -> None:
@@ -63,6 +59,7 @@ class PatchService:
     @classmethod
     def apply_patch(cls, patch: Dict[str, Any], workspace_dir: Path, *, repository_dir: Optional[Path] = None) -> None:
         cls.validate_patch(patch)
+        workspace_dir = ensure_within_root(workspace_dir.parent, workspace_dir)
         workspace_dir.mkdir(parents=True, exist_ok=True)
         for file_path, entry in patch['files'].items():
             target = cls._resolve_inside(workspace_dir, file_path)
@@ -72,6 +69,8 @@ class PatchService:
 
     @classmethod
     def revert_patch(cls, patch: Dict[str, Any], workspace_dir: Path, *, repository_dir: Path) -> None:
+        workspace_dir = ensure_within_root(workspace_dir.parent, workspace_dir)
+        repository_dir = ensure_within_root(repository_dir.parent, repository_dir)
         changed = cls.changed_files(patch)
         for file_path in changed:
             target = cls._resolve_inside(workspace_dir, file_path)

@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -8,6 +9,8 @@ from rest_framework.test import APIClient
 class TemplateCommandApiTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.user = get_user_model().objects.create_user(username='template-user', password='secret123')
+        self.client.force_login(self.user)
 
     def test_template_command_requires_command(self):
         response = self.client.post(

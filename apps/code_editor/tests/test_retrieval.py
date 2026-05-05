@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework import status
@@ -82,6 +83,8 @@ class RetrievalServiceTestCase(TestCase):
 class RetrievalAPITestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.user = get_user_model().objects.create_user(username='retrieval-user', password='secret123')
+        self.client.force_login(self.user)
 
     def test_search_chunks_endpoint(self):
         data = {'query': 'test function', 'limit': 10, 'similarity_threshold': 0.5}
@@ -127,9 +130,10 @@ class RetrievalAPITestCase(TestCase):
         self.assertIn('data', response.data)
         self.assertIn('total', response.data)
 
-    def test_local_access_without_auth(self):
-        response = self.client.post('/api/code-editor/search/', {'query': 'test'}, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    def test_search_endpoint_requires_authentication(self):
+        anonymous_client = APIClient()
+        response = anonymous_client.post('/api/code-editor/search/', {'query': 'test'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 class SearchRequestSerializerTestCase(TestCase):

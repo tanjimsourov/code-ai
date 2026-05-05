@@ -5,7 +5,7 @@ from __future__ import annotations
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
-from ..permissions import CodeEditorApiKeyPermission
+from ..permissions import CanApprovePatch, CodeEditorApiKeyPermission
 from .throttles import AIThrottle
 from rest_framework.response import Response
 
@@ -177,7 +177,7 @@ def task_artifacts_and_patches(request, task_id):
 
 
 @api_view(['POST'])
-@permission_classes([CodeEditorApiKeyPermission])
+@permission_classes([CanApprovePatch])
 def approve_patch(request, task_id, candidate_id=None):
     """
     Approve a candidate patch and optionally apply it.
@@ -250,7 +250,7 @@ def approve_patch(request, task_id, candidate_id=None):
     if serializer.validated_data.get('auto_apply'):
         # Determine workspace directory from the task.  We no longer accept
         # client‑supplied paths.
-        workspace_path = TaskArtifactService.task_dir(task) / 'workspace'
+        workspace_path = TaskArtifactService.workspace_dir(task)
         # Apply the candidate patch
         applied = PatchGenerationService().apply_candidate_to_workspace(candidate, workspace_path)
         if not applied:
@@ -279,7 +279,7 @@ def approve_patch(request, task_id, candidate_id=None):
 
 
 @api_view(['POST'])
-@permission_classes([CodeEditorApiKeyPermission])
+@permission_classes([CanApprovePatch])
 def reject_patch(request, task_id, candidate_id=None):
     """
     Reject a candidate patch for a task.

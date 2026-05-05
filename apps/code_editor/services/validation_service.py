@@ -1,5 +1,6 @@
 """Validation service for comprehensive candidate testing."""
 
+import os
 from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 import subprocess
@@ -16,7 +17,7 @@ class ValidationService:
         # Instantiate a sandboxed command runner for executing test and syntax commands
         try:
             from .command_runner import CommandRunner
-            self.command_runner = CommandRunner()
+            self.command_runner = CommandRunner(workspace_root=os.getenv('CODE_EDITOR_TASK_STORAGE_ROOT'))
         except Exception:
             self.command_runner = None
     
